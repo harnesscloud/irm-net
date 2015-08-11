@@ -11,6 +11,7 @@ from optparse import OptionParser
 
 from net_managers_view import NETManagersView
 from net_resources_view import NETResourcesView
+from net_reservations_view import NETReservationsView
 '''
 from crs_status_view import CRSStatusView
 from crs_managers_view import CRSManagersView
@@ -29,27 +30,42 @@ crs_views=[CRSManagersView,  \
 '''
 
 net_views=[NETManagersView, \
-           NETResourcesView]
+           NETResourcesView, \
+           NETReservationsView]
              
 mgr = HarnessResourceManager(net_views)
 
 parser = OptionParser()
 parser.add_option("-p", "--port", dest="PORT", default=7779,
-                  help="CRS port", type="int")
+                  help="IRM-NET port", type="int")
+                  
+parser.add_option("-o", "--chost", dest="CRS_HOST", default="localhost",
+                  help="CRS host", type="string")      
+                  
+parser.add_option("-t", "--cport", dest="CRS_PORT", default=56788,
+                  help="CRS port", type="int") 
+                           
+parser.add_option("-d", "--disable-crs", dest="CRS_DISABLE", default=False,
+                  help="disable CRS", action="store_true")                         
                 
 (options,_) = parser.parse_args()
                   
-def work (): 
+def request_resources (): 
   global options
-  threading.Timer(10, work).start (); 
+  threading.Timer(3, request_resources).start (); 
   try:
-     hresman.utils.post({}, 'v3/resources/request', options.PORT)
-  except:
+     hresman.utils.get('v3/resources/request', options.PORT)
+  except Exception as e:
      pass
-          
-#work
 
-             
+request_resources()
+
+NETManagersView.CRS_DISABLE=options.CRS_DISABLE
+
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.ERROR)
+
+        
 mgr.run(options.PORT)
 
    
