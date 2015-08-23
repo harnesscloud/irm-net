@@ -46,7 +46,10 @@ parser.add_option("-t", "--cport", dest="CRS_PORT", default=56788,
                   help="CRS port", type="int") 
                            
 parser.add_option("-d", "--disable-crs", dest="CRS_DISABLE", default=False,
-                  help="disable CRS", action="store_true")                         
+                  help="disable CRS", action="store_true")       
+                  
+parser.add_option("-i", "--ignore-irms", dest="IGNORE_IRMS", default=False,
+                  help="ignore IRM-NOVA and IRM-NEUTRON", action="store_true")                                        
                 
 (options,_) = parser.parse_args()
                   
@@ -61,10 +64,13 @@ def request_resources ():
 request_resources()
 
 NETManagersView.CRS_DISABLE=options.CRS_DISABLE
+NETManagersView.IGNORE_IRMS=options.IGNORE_IRMS
 
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
 
+if options.IGNORE_IRMS:
+   NETManagersView.register_crs()   
         
 mgr.run(options.PORT)
 

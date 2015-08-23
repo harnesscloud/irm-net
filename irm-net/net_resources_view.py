@@ -7,18 +7,26 @@ import net_managers_view
 import copy
 from hresman.utils import get, post
 import net_managers_view
+from net_links import get_topology, link_calc_capacity 
+import json
 
 class NETResourcesView(ResourcesView):    
     AllocSpec = None
     ManagersTypes = None
+    Topology = None
     
     def _get_resources(self):       
        resources = { }
-
+       
+       if NETResourcesView.Topology == None:
+          print "getting topology..."
+          NETResourcesView.Topology = get_topology()
+                  
        if net_managers_view.NETManagersView.net_operational():
           for r in NETResourcesView.resources:
              resources.update(NETResourcesView.resources[r])
-       
+          
+          resources.update(NETResourcesView.Topology["paths"])
           return { "Resources": resources }
        else:
           net_managers_view.NETManagersView.disconnect_crs()
@@ -48,7 +56,9 @@ class NETResourcesView(ResourcesView):
                     types.update(spec["Types"])
                  for t in spec["Types"]:
                     NETResourcesView.ManagersTypes[t] = id
-                    
+           types["Link"] = { "Source": { "Description": "source resource", "DataType": "string"}, \
+                             "Target": { "Description": "target resource", "DataType": "string"}, \
+                             "Bandwidth": { "Description": "bandwidth to be reserved", "DataType": "string"} }
            NETResourcesView.AllocSpec = { "Types": types, "Constraints":  constraints, "Monitor": { "Metrics": metrics, \
                                                                            "Aggregation": agg } }      
         return NETResourcesView.AllocSpec
@@ -60,10 +70,16 @@ class NETResourcesView(ResourcesView):
         
         if resource["Type"] not in spec["Types"]:
            raise Exception("Type %s not supported!" % resource["Type"])
+           
+        if resource["Type"] == "Link": 
+           ret = { "result": link_calc_capacity(resource, allocation, release) }
+        else:
+           manager = net_managers_view.NETManagersView.managers[NETResourcesView.ManagersTypes[resource["Type"]]]    
         
-        manager = net_managers_view.NETManagersView.managers[NETResourcesView.ManagersTypes[resource["Type"]]]    
-        
-        ret = post({"Resource": resource, "Allocation": allocation, "Release": release}, \
+           ret = post({"Resource": resource, "Allocation": allocation, "Release": release}, \
                    "calculateCapacity", manager["Port"], manager["Address"])
+                   
+        if "result" not in ret:
+           raise Exception("Error: %s", str(ret))           
                  
-        return ret                                                                              
+        return ret["result"]                                                                              

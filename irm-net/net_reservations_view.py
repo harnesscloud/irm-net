@@ -14,6 +14,7 @@ from net_resources_view import NETResourcesView
 import uuid
 import json
 from hresman.utils import post
+from operator import itemgetter
 
 class NETReservationsView(ReservationsView):
 
@@ -36,86 +37,63 @@ class NETReservationsView(ReservationsView):
         for req in alloc_req:
            if req["Type"] not in mantypes:
               raise Exception("Do not support allocation request type: %s!" % req["Type"])
-              
+        
+        # add original order, so that we do not lose it when we sort
+        n = 1
+        for elem in alloc_req:
+           elem['pos'] = n
+           n = n + 1
+                
         # sort the allocation requests
         salloc_req = sorted(alloc_req, key=lambda x: NETReservationsView.SupportedTypes[x["Type"]])
         
         #print "salloc_req=", json.dumps(salloc_req)
         reservations=[]
-        for req in salloc_req:
-           manager = NETManagersView.managers[NETResourcesView.ManagersTypes[req["Type"]]] 
-             
-           if req["Type"] == "PublicIP" and "Attributes" in req and "VM" in req["Attributes"] and \
-                  req["Attributes"]["VM"] in groups:
-              req["Attributes"]["VM"] = groups[req["Attributes"]["VM"]]             
-           ret = post({"Allocation": [req], "Monitor": monitor}, "createReservation", \
-                      manager["Port"], manager["Address"])
-           if "result" in ret and "ReservationID" in ret["result"]:
-              if len(ret["result"]["ReservationID"]) == 1 and "Group" in req:
-                 groups[req["Group"]] = ret["result"]["ReservationID"][0]
-              reservations.extend(ret["result"]["ReservationID"])
-           else:
-              raise Exception("internal error: %s" % str(ret))
-           
-        return {"ReservationID": reservations}
-  
-        '''   
-       schedule = CRSReservationsView._scheduler(CRSManagersView.managers, CRSResourcesView.resources, \
-                                                 alloc_req, alloc_constraints, CRSResourcesView.resource_constraints) 
-        
-       iResIDs = []
-       rollback = False
-       for s in schedule:          
-          addr = CRSManagersView.managers[s["manager"]]['Address']
-          port = CRSManagersView.managers[s["manager"]]['Port']
-          rtype = s["alloc_req"]["Type"]
-          monitor_data = {}
-          if rtype in monitor:
-             monitor_data[rtype] = monitor[rtype]
-             if "PollTime" in monitor:
-                monitor_data["PollTime"] = monitor["PollTime"]
-          else:
-             monitor_data = {}
+        rollback = False
+        error_msg = ""
+        try:
+           for req in salloc_req:
+              manager = NETManagersView.managers[NETResourcesView.ManagersTypes[req["Type"]]] 
                 
-          data = { "Allocation" : [{ "Type": rtype, \
-                                    "ID": s["res_id"], \
-                                    "Attributes": s["alloc_req"]["Attributes"] }], \
-                   
-                   "Monitor": monitor_data
-                 } 
-          
-          try:
-             ret = hresman.utils.post(data, 'createReservation', port, addr)
-
-          except Exception as e:
-             print "rolling back! " + str(e)
-             rollback = True
-          
-          if (not rollback) and "result" not in ret:
-             rollback = True
-          
-          if rollback:
-             break
-          else:
-             iResIDs.append({"addr": addr, "port": port, "name": CRSManagersView.managers[s["manager"]]['Name'], \
-                             "iRes": ret["result"]["ReservationID"], "sched": s})
-       
-       if not rollback:
-          resID = uuid.uuid1()
-          ReservationsView.reservations[str(resID)] = iResIDs
-       else:
-          for iResID in iResIDs:
-             data = {"ReservationID": iResID["iRes"]}
-             try:                
+              if req["Type"] == "PublicIP" and "Attributes" in req and "VM" in req["Attributes"] and \
+                     req["Attributes"]["VM"] in groups:
+                 req["Attributes"]["VM"] = groups[req["Attributes"]["VM"]]             
+              ret = post({"Allocation": [req], "Monitor": monitor}, "createReservation", \
+                         manager["Port"], manager["Address"])
+              if "result" in ret and "ReservationID" in ret["result"]:
+                 rID = ret["result"]["ReservationID"]
+                 if len(rID) != 1:
+                    raise Exception("Wrong reservation ID (%s), expecting one element; manager info: %s" % (str(rID), str(manager)))
+                    
+                 if "Group" in req:
+                    groups[req["Group"]] = rID[0]
+                    
+                 reservations.append({ "addr": manager["Address"], "port": manager["Port"], \
+                                       "name": manager["Name"], "ManagerID": manager["ManagerID"], \
+                                       "iRes": rID, "pos": req["pos"] })
+              else:
+                 raise Exception("internal error: %s" % str(ret))
+        except Exception as e:
+           print "rolling back! " + str(e)
+           error_msg = str(e)
+           rollback = True
+        
+        if not rollback:
+           resID = uuid.uuid1()
+           ReservationsView.reservations[str(resID)] = reservations
+        else:
+           for iResID in reservations:
+              print "backtracking...%s" % str(iResID)
+              data = {"ReservationID": iResID["iRes"]}
+              try:                
                 hresman.utils.delete_(data, 'releaseReservation', iResID["port"], iResID["addr"])
-             except:
+              except:
                 pass  
-          raise Exception("cannot make reservation! (rollbacking)")  
-         
-       return { "ReservationID" : [str(resID)] }                    
-    '''
+           raise Exception("cannot make reservation! (rollbacking): %s" % error_msg)  
+        
+        return { "ReservationID" : [str(resID)] }          
+           
     ###############################################  check reservation ############   
-    '''
     def _check_reservation(self, reservations):
        check_result = { "Instances": {} }
  
@@ -123,7 +101,8 @@ class NETReservationsView(ReservationsView):
           if reservation not in ReservationsView.reservations: 
              raise Exception("cannot find reservation: " + reservation)
           
-          data = ReservationsView.reservations[reservation]
+          # we must check with the original requested order
+          data = sorted(ReservationsView.reservations[reservation], key=itemgetter('pos')) 
           ready = True
           addrs = []
           for alloc in data:
@@ -132,7 +111,6 @@ class NETReservationsView(ReservationsView):
                 raise Exception("Error in checking reservation: ", str(ret))
              
              instances = ret["result"]["Instances"]
-             
              for i in instances:                
                 addrs.extend(instances[i]["Address"])
                 ready = ready and instances[i]["Ready"].upper() == "TRUE"
@@ -142,31 +120,30 @@ class NETReservationsView(ReservationsView):
              check_result["Instances"][reservation] = { "Ready": "False" }      
        return check_result
 
-    ###############################################  release reservation ############   
+    ###############################################  release reservation ############ 
     def _release_reservation(self, reservations):
-       print "releasing..." + str(reservations)
        for reservation in reservations:
           if reservation not in ReservationsView.reservations: 
              raise Exception("cannot find reservation: " + reservation)
-          
-          data = ReservationsView.reservations[reservation]
+          # reverse the order in which they were created
+          data = ReservationsView.reservations[reservation][::-1]
           del ReservationsView.reservations[reservation] 
-          for alloc in data:
-    
+          
+          for alloc in data:  
              ret = hresman.utils.delete_( { "ReservationID" : alloc["iRes"] }, "releaseReservation", alloc["port"], alloc["addr"])
              #if "result" not in ret:
              #   raise Exception("Error in deleting reservation: ", str(ret))
-  
                 
        return { }   
-    '''
+  
     ###############################################  release all reservations ############        
     def _release_all_reservations(self):
        managers = NETManagersView.managers
        for m in managers:
           hresman.utils.delete_({}, "releaseAllReservations", managers[m]['Port'], managers[m]['Address'])
-       reservations = ReservationsView.reservations.keys()
-       return self._release_reservation(reservations)           
+       ReservationsView.reservations = {}
+       
+       return {}            
                    
   
 

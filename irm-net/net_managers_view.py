@@ -13,11 +13,12 @@ class NETManagersView(ManagersTreeView):
     CRS_PORT = 56788    
     MANAGER_ID = None
     
-    CRS_DISABLE = True
+    CRS_DISABLE = False
+    IGNORE_IRMS = False
     
     @staticmethod
     def net_operational():
-       return len(NETManagersView.ChildManagers) == 2
+       return NETManagersView.IGNORE_IRMS or len(NETManagersView.ChildManagers) == 2
        
     @staticmethod
     def expect_ready_manager():
@@ -28,11 +29,21 @@ class NETManagersView(ManagersTreeView):
     def disconnect_crs():
        #print "disconnecting CRS..."
        
-       #if not NETManagersView.CRS_DISABLE and NETManagersView.MANAGER_ID != None:
+       if not NETManagersView.CRS_DISABLE and NETManagersView.MANAGER_ID != None:
           out=hresman.utils.delete_({} , 'unregisterManager/%s' % NETManagersView.MANAGER_ID,\
                      NETManagersView.CRS_PORT,\
                      NETManagersView.CRS_HOST)
        
+    @staticmethod
+    def register_crs():
+       out=hresman.utils.post({"Port":7779, "Name": "IRM-NET"} , 'registerManager',\
+                         NETManagersView.CRS_PORT,\
+                         NETManagersView.CRS_HOST) 
+       if not isinstance(out, dict) or "result" not in out:
+          return False
+       else:
+          NETManagersView.MANAGER_ID = out["result"]["ManagerID"]
+       return True   
           
     def _acceptManager(self, addr, port, name):
        if name == "IRM-NOVA" or name == "IRM-NEUTRON":
@@ -42,19 +53,15 @@ class NETManagersView(ManagersTreeView):
        
        if not NETManagersView.CRS_DISABLE and NETManagersView.CRS_HOST != "" and \
               NETManagersView.net_operational():
-          out=hresman.utils.post({"Port":7779, "Name": "IRM-NET"} , 'registerManager',\
-                         NETManagersView.CRS_PORT,\
-                         NETManagersView.CRS_HOST) 
-          if not isinstance(out, dict) or "result" not in out:
-             return False
-          else:
-             NETManagersView.MANAGER_ID = out["result"]["ManagerID"]
+          return register_crs()
+          
        return True   
       
     def _deleteManager(self, name, address, port, id):
        if name in NETManagersView.ChildManagers:
           NETManagersView.ChildManagers.remove(name)
-          NETManagersView.disconnect_crs()
+          if not NETManagersView.IGNORE_IRMS:
+             NETManagersView.disconnect_crs()
        
 
     def _registerManager(self, data):
