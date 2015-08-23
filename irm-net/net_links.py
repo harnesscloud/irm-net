@@ -1,18 +1,18 @@
 import json
 import copy
+import uuid
 
-def get_topology():
+def link_get_topology():
    Latency_Table = [1, 1, 0.5, 0.1]
    BW_Table = [1, 1, 1, 10]
    spec_nodes = { "DC0": { "C0": { "S0": { "N0": {}, "N1": {}, "N2": {}, "N3": {}, "BW": 1 }, "S1": { "N4": {}, "N5": {}, "N6": {}, "N7": {} }}}} 
    
    links,nodes=gen_topology(Latency_Table, BW_Table, spec_nodes)
-   
    paths, link_list, constraint_list = gen_paths(links, nodes)
-   
    #print "PATHS=", json.dumps(paths, indent=4)
    #print "LINK_LIST=", json.dumps(link_list, indent=4)
    #print "CONSTRAINT_LIST=", json.dumps(constraint_list, indent=4)
+   
    
    return { "links": links, "nodes": nodes, "paths": paths, "link_list": link_list, "constraint_list": constraint_list }
 
@@ -282,5 +282,97 @@ def link_calc_capacity(resource, allocation, release):
        if bandwidth < 0:
           return {}
     
-    return { "Type": "Link", "Attributes": { "Source": source, "Target": target, "Bandwidth": bandwidth } } 
+    return {"Resource": {"Type": "Link", "Attributes": { "Source": source, "Target": target, "Bandwidth": bandwidth } }} 
+
+def link_create_reservation (links, paths, link_list, link_res, req):
+        
+    #print "paths=", json.dumps(paths, indent=4)
+    #print "links=", json.dumps(links, indent=4)
+    #print "link_list=", json.dumps(link_list, indent=4)
+    #print "link_res=", json.dumps(link_res, indent=4)
+    #print "req=", json.dumps(req, indent=4)
+    
+    # find the ID; it is either provided (Damian's CRS, or it needs to be found)
+    
+    
+    pathID = None
+    if 'ID' not in req:
+       if ('Source' not in req["Attributes"]) or ('Target' not in req["Attributes"]):
+          raise Exception("ID not found, so Source/Target attributes must be specified!")       
+       for p in paths:
+          if (paths[p]["Attributes"]["Source"] == req["Attributes"]["Source"]) and \
+             (paths[p]["Attributes"]["Target"] == req["Attributes"]["Target"]):
+             pathID = p
+             break
+          elif (paths[p]["Attributes"]["Source"] == req["Attributes"]["Target"]) and \
+             (paths[p]["Attributes"]["Target"] == req["Attributes"]["Source"]):
+             pathID = p
+             break
+                          
+       if pathID == None:
+          raise Exception("Cannot find a path with source: %s and target: %s" % (req["Attributes"]["Source"], \
+                                                                                 req["Attributes"]["Target"]))
+    else:
+       if req['ID'] not in paths:
+          raise Exception("Cannot find path: %s" % req['ID'])
+       pathID = req['ID']
+    
+    if 'Bandwidth' not in req['Attributes']:
+       raise Exception("Bandwidth attribute required!")
+    bandwidth = req['Attributes']['Bandwidth']
+    if bandwidth <= 0:
+       raise Exception("Invalid bandwidth %.2f requested!" % bandwidth)
+    
+    # check first if there is enough bandwidth in each link
+                      
+    for linkID in link_list[ pathID ]:
+       if bandwidth > links[ linkID ]["Attributes"]["Bandwidth"]:
+          raise Exception("Not enough bandwidth (%.2f) in path: %s" % (bandwidth, pathID))
+
+    for linkID in link_list[ pathID ]:      
+       links[ linkID ]["Attributes"]["Bandwidth"] = links[ linkID ]["Attributes"]["Bandwidth"] - bandwidth 
  
+    resID = str(uuid.uuid1())
+     
+    link_res[resID] = { "pathID": pathID, "bandwidth": bandwidth }
+       
+    calculate_attribs(paths, link_list, links)
+    
+    return resID
+    
+def link_release_reservation (links, paths, link_list, link_res, resIDs):
+
+    for resID in resIDs:
+    
+        if resID not in link_res:
+           raise Exception("Cannot find reservation ID: %s" % resID)
+        
+        pathID    = link_res[ resID ]["pathID"]
+        bandwidth = link_res[ resID ]["bandwidth"]
+
+        # Iterate all physical links within the path-resource
+        # Add back the released bandwidth
+        for linkID in link_list[ pathID ]:
+            links[ linkID ]["Attributes"]["Bandwidth"] = links[ linkID ]["Attributes"]["Bandwidth"] + bandwidth
+
+        # Remove reservation from list
+        del( link_res[resID] )
+
+
+    calculate_attribs(paths, link_list, links)
+
+    return { }
+
+def link_check_reservation (link_res, resIDs):
+    result = { }
+    for resID in resIDs:
+    
+        if resID not in link_res:
+           raise Exception("Cannot find reservation ID: %s" % resID)
+           
+        result[resID] = { "Ready": "True", "Address": ["path://%s" % resID] }
+        
+    return { "Instances": result }
+         
+
+

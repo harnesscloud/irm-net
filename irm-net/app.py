@@ -62,6 +62,7 @@ def request_resources ():
      pass
 
 request_resources()
+NETResourcesView.load_topology()
 
 NETManagersView.CRS_DISABLE=options.CRS_DISABLE
 NETManagersView.IGNORE_IRMS=options.IGNORE_IRMS
@@ -69,7 +70,7 @@ NETManagersView.IGNORE_IRMS=options.IGNORE_IRMS
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
 
-if options.IGNORE_IRMS:
+if options.IGNORE_IRMS and not NETManagersView.CRS_DISABLE:
    NETManagersView.register_crs()   
         
 mgr.run(options.PORT)

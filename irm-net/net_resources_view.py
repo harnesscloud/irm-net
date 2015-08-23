@@ -7,7 +7,7 @@ import net_managers_view
 import copy
 from hresman.utils import get, post
 import net_managers_view
-from net_links import get_topology, link_calc_capacity 
+from net_links import link_get_topology, link_calc_capacity 
 import json
 
 class NETResourcesView(ResourcesView):    
@@ -15,19 +15,21 @@ class NETResourcesView(ResourcesView):
     ManagersTypes = None
     Topology = None
     
+    @staticmethod
+    def load_topology():
+       NETResourcesView.Topology = link_get_topology()       
+    
     def _get_resources(self):       
        resources = { }
        
-       if NETResourcesView.Topology == None:
-          print "getting topology..."
-          NETResourcesView.Topology = get_topology()
-                  
        if net_managers_view.NETManagersView.net_operational():
           for r in NETResourcesView.resources:
              resources.update(NETResourcesView.resources[r])
-          
           resources.update(NETResourcesView.Topology["paths"])
-          return { "Resources": resources }
+          ret = { "Resources": resources }
+          if len(NETResourcesView.Topology["constraint_list"]) > 0:
+             ret["Constraints"] = NETResourcesView.Topology["constraint_list"]
+          return ret
        else:
           net_managers_view.NETManagersView.disconnect_crs()
           raise Exception("Either IRM-NOVA or IRM-NEUTRON not registered!")

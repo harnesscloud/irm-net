@@ -46,6 +46,7 @@ class NETManagersView(ManagersTreeView):
        return True   
           
     def _acceptManager(self, addr, port, name):
+       
        if name == "IRM-NOVA" or name == "IRM-NEUTRON":
           NETManagersView.ChildManagers.add(name)
        else:
@@ -53,8 +54,7 @@ class NETManagersView(ManagersTreeView):
        
        if not NETManagersView.CRS_DISABLE and NETManagersView.CRS_HOST != "" and \
               NETManagersView.net_operational():
-          return register_crs()
-          
+          return NETManagersView.register_crs()
        return True   
       
     def _deleteManager(self, name, address, port, id):
