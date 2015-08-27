@@ -66,6 +66,8 @@ NETResourcesView.load_topology()
 
 NETManagersView.CRS_DISABLE=options.CRS_DISABLE
 NETManagersView.IGNORE_IRMS=options.IGNORE_IRMS
+NETManagersView.CRS_HOST = options.CRS_HOST
+NETManagersView.CRS_PORT = options.CRS_PORT
 
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
