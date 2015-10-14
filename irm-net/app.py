@@ -52,17 +52,19 @@ parser.add_option("-i", "--ignore-irms", dest="IGNORE_IRMS", default=False,
                   help="ignore IRM-NOVA and IRM-NEUTRON", action="store_true")                                        
                 
 (options,_) = parser.parse_args()
-                  
+
 def request_resources (): 
   global options
-  threading.Timer(3, request_resources).start (); 
+  threading.Timer(5, request_resources).start (); 
   try:
      hresman.utils.get('v3/resources/request', options.PORT)
   except Exception as e:
      pass
 
+
 request_resources()
-NETResourcesView.load_topology()
+
+#NETResourcesView.load_topology()
 
 NETManagersView.CRS_DISABLE=options.CRS_DISABLE
 NETManagersView.IGNORE_IRMS=options.IGNORE_IRMS

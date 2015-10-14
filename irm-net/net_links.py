@@ -2,9 +2,29 @@ import json
 import copy
 import uuid
 
+def link_gen_topology(machines): 
+   Latency_Table = [1, 1, 0.5, 0.1]
+   BW_Table = [1, 1, 1, 10]
+   
+   mchn = { k:{} for k,v in machines.items() }
+   mchn["BW"]=100
+
+   #spec_nodes = { "DC0": { "C0": { "S0": mchn}}} 
+   spec_nodes = { "DC0": { "C0": { "S0": { "N0": {}, "N1": {}, "N2": {}, "N3": {}, "BW": 1 }, "S1": { "N4": {}, "N5": {}, "N6": {}, "N7": {} }}}} 
+
+   print spec_nodes
+   
+   print "HA!"
+   links,nodes=gen_topology(Latency_Table, BW_Table, spec_nodes)
+   paths, link_list, constraint_list = gen_paths(links, nodes)
+   
+   print "RIGHT!"
+   return { "links": links, "nodes": nodes, "paths": paths, "link_list": link_list, "constraint_list": constraint_list }
+
 def link_get_topology():
    Latency_Table = [1, 1, 0.5, 0.1]
    BW_Table = [1, 1, 1, 10]
+   
    spec_nodes = { "DC0": { "C0": { "S0": { "N0": {}, "N1": {}, "N2": {}, "N3": {}, "BW": 1 }, "S1": { "N4": {}, "N5": {}, "N6": {}, "N7": {} }}}} 
    
    links,nodes=gen_topology(Latency_Table, BW_Table, spec_nodes)

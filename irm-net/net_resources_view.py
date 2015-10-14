@@ -7,7 +7,7 @@ import net_managers_view
 import copy
 from hresman.utils import get, post
 import net_managers_view
-from net_links import link_get_topology, link_calc_capacity 
+from net_links import link_gen_topology, link_calc_capacity 
 import json
 
 class NETResourcesView(ResourcesView):    
@@ -15,9 +15,9 @@ class NETResourcesView(ResourcesView):
     ManagersTypes = None
     Topology = None
     
-    @staticmethod
-    def load_topology():
-       NETResourcesView.Topology = link_get_topology()       
+    #@staticmethod
+    #def load_topology():
+    #   NETResourcesView.Topology = link_get_topology()       
     
     def _get_resources(self):       
        resources = { }
@@ -25,7 +25,12 @@ class NETResourcesView(ResourcesView):
        if net_managers_view.NETManagersView.net_operational():
           for r in NETResourcesView.resources:
              resources.update(NETResourcesView.resources[r])
+          if NETResourcesView.Topology == None:
+             print "WAHTC???", NETResourcesView.Topology
+             machines = {k: v for k, v in resources.items() if v["Type"] == "Machine"}
+             NETResourcesView.Topology = link_gen_topology(machines)    
           resources.update(NETResourcesView.Topology["paths"])
+          
           ret = { "Resources": resources }
           if len(NETResourcesView.Topology["constraint_list"]) > 0:
              ret["Constraints"] = NETResourcesView.Topology["constraint_list"]
