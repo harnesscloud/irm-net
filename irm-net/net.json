@@ -1,3 +1,10 @@
 [
-  { "name": "", "cluster": "cluster", "latency": 0, "bandwidth": -1 }
+  { "name": "control", "cluster": "rennes" },
+  { "name": "compute", "cluster": "nantes" },
+  { "name": "rennes", "latency": 10, "bandwidth": 50 },
+  { "name": "nantes", "latency": 12, "bandwidth": 3500 },
+  { "name": "DC", "latency": 15, "bandwidth": 35 },
+  { "name": "",  "cluster": "my-cluster", "latency": 20, "bandwidth": 400 }
+  
+  
 ]

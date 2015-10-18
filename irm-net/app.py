@@ -55,7 +55,7 @@ parser.add_option("-i", "--ignore-irms", dest="IGNORE_IRMS", default=False,
 
 def request_resources (): 
   global options
-  #threading.Timer(5, request_resources).start (); 
+  threading.Timer(5, request_resources).start (); 
   try:
      hresman.utils.get('v3/resources/request', options.PORT)
   except Exception as e:

@@ -11,21 +11,64 @@ def load_spec_nodes(mchn):
    
    inf = sys.maxint
     
-   spec_nodes = { "DC": { "Cluster": { "LT":0, "BW":inf }, "LT": 0, "BW":inf}}
+   spec_nodes = { "DC-01234": { "DC": { "LT":0, "BW":inf }, "LT": 0, "BW":inf}, "LT": 0, "BW": inf}
    
-   snodes = spec_nodes["DC"]["Cluster"]
+   dc = spec_nodes["DC-01234"]["DC"]
    
+   clusters = {}
    for m in mchn:
       rule = {}
       for r in rules:
          if r["name"] in m:
             rule = r
             break
-      if rule == {}:
+      if rule == {} or 'cluster' not in rule:
          raise Exception("IRM-NET: cannot find network information about machine: %s!" % m)
-         
+      
+      if r['cluster'] not in clusters:
+         clusters[r['cluster']] = {}
+      clusters[r['cluster']][m] = {}
+    
+ 
+   for c in clusters:
+      rule = {}
+      for r in rules:
+         if r["name"] in c:
+            rule = r
+            break
+      bw = -1
+      latency = 0
+      
+      if rule != {}:
+         if 'bandwidth' in rule:
+            bw = rule['bandwidth']
+         if 'latency' in rule:
+            latency = rule['latency']
+      if bw == -1:
+         bw = inf
+      
+      clusters[c]['BW'] = bw
+      clusters[c]['LT'] = latency
 
-   print ":::::::::::::>", json.dumps(spec_nodes, indent=4)
+   dc_rule = {}        
+   for r in rules:    
+      if r['name'] == 'DC':
+         dc_rule = r
+            
+   #print ":::::::::::>", dc_rule
+   if dc_rule != {}:
+      if 'bandwidth' in dc_rule:
+          bw = dc_rule['bandwidth']
+          if bw == -1:
+             bw = inf
+          dc['BW'] = bw   
+      if 'latency' in dc_rule:
+         dc['LT'] = dc_rule['latency']
+   dc.update(clusters)
+
+   print ":::::::::::::>", json.dumps(spec_nodes, indent=4)   
+   return spec_nodes
+
    
      
 def link_gen_topology(machines): 
@@ -33,7 +76,7 @@ def link_gen_topology(machines):
    mchn = { k:{} for k,v in machines.items() }
 
    load_spec_nodes(mchn)
-   
+   '''
    spec_nodes = {
     "DC": {
         "Cluster0": {
@@ -57,15 +100,15 @@ def link_gen_topology(machines):
     "LT": 0,
     "BW": 1000
    }
+   '''
+   spec_nodes = load_spec_nodes(mchn)
    #print "spec_nodes = ", spec_nodes
+
    links,nodes=gen_topology(spec_nodes)
-   
-   
 
    #print "links=", json.dumps(links, indent=4)
    #print "nodes=", json.dumps(nodes, indent=4)
    paths, link_list, constraint_list = gen_paths(links, nodes)
-   print "DONE!"
    return { "links": links, "nodes": nodes, "paths": paths, "link_list": link_list, "constraint_list": constraint_list }
 
 def process_spec(links, nodes, source, spec_nodes, level, n, context):
@@ -77,7 +120,7 @@ def process_spec(links, nodes, source, spec_nodes, level, n, context):
        latency = spec_nodes['LT']
     else:
        raise Exception("Cannot determine latency: %s, level: %d!" % (source, level))
-         
+    
     if 'BW' in spec_nodes:
        bandwidth = spec_nodes['BW']      
     else:
@@ -86,7 +129,7 @@ def process_spec(links, nodes, source, spec_nodes, level, n, context):
     for target in spec_nodes:
        if target != 'BW' and target != 'LT':
           key = "l_" + source + "_" + target   
-          #print ":::>", ' ' * level*4, key, ":", context[0], ":", context[1], ":", context[2]    
+          #cprint ":::>", ' ' * level*4, key, ":", context[0], ":", context[1], ":", context[2]    
           links[key] = { "Type": "Link", "Source": source, "Target": target, \
                         "Attributes": { "Latency": latency, "Bandwidth": bandwidth } }
           if level < len(context):
