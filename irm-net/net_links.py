@@ -1,79 +1,105 @@
 import json
 import copy
 import uuid
+import os
+import sys
 
+def load_spec_nodes(mchn):
+   curr = os.path.dirname(os.path.abspath(__file__))
+   with open(curr + '/net.json') as data_file:    
+      rules = json.load(data_file)
+   
+   inf = sys.maxint
+    
+   spec_nodes = { "DC": { "Cluster": { "LT":0, "BW":inf }, "LT": 0, "BW":inf}}
+   
+   snodes = spec_nodes["DC"]["Cluster"]
+   
+   for m in mchn:
+      rule = {}
+      for r in rules:
+         if r["name"] in m:
+            rule = r
+            break
+      if rule == {}:
+         raise Exception("IRM-NET: cannot find network information about machine: %s!" % m)
+         
+
+   print ":::::::::::::>", json.dumps(spec_nodes, indent=4)
+   
+     
 def link_gen_topology(machines): 
-   Latency_Table = [1, 1, 0.5, 0.1]
-   BW_Table = [1, 1, 1, 10]
    
    mchn = { k:{} for k,v in machines.items() }
-   mchn["BW"]=100
 
-   #spec_nodes = { "DC0": { "C0": { "S0": mchn}}} 
-   spec_nodes = { "DC0": { "C0": { "S0": { "N0": {}, "N1": {}, "N2": {}, "N3": {}, "BW": 1 }, "S1": { "N4": {}, "N5": {}, "N6": {}, "N7": {} }}}} 
-
-   print spec_nodes
+   load_spec_nodes(mchn)
    
-   print "HA!"
-   links,nodes=gen_topology(Latency_Table, BW_Table, spec_nodes)
+   spec_nodes = {
+    "DC": {
+        "Cluster0": {
+            "Switch0": {
+                "controller": {},
+                "LT": 20,
+                "BW": 70
+            },
+            "Switch1": {
+                "compute-001": {},
+                "compute-002": {},                
+                "LT": 20,
+                "BW": 1500
+            },
+            "LT": 230,
+            "BW": 30
+        },
+        "LT": 0,
+        "BW": 1500
+    },
+    "LT": 0,
+    "BW": 1000
+   }
+   #print "spec_nodes = ", spec_nodes
+   links,nodes=gen_topology(spec_nodes)
+   
+   
+
+   #print "links=", json.dumps(links, indent=4)
+   #print "nodes=", json.dumps(nodes, indent=4)
    paths, link_list, constraint_list = gen_paths(links, nodes)
-   
-   print "RIGHT!"
+   print "DONE!"
    return { "links": links, "nodes": nodes, "paths": paths, "link_list": link_list, "constraint_list": constraint_list }
 
-def link_get_topology():
-   Latency_Table = [1, 1, 0.5, 0.1]
-   BW_Table = [1, 1, 1, 10]
-   
-   spec_nodes = { "DC0": { "C0": { "S0": { "N0": {}, "N1": {}, "N2": {}, "N3": {}, "BW": 1 }, "S1": { "N4": {}, "N5": {}, "N6": {}, "N7": {} }}}} 
-   
-   links,nodes=gen_topology(Latency_Table, BW_Table, spec_nodes)
-   paths, link_list, constraint_list = gen_paths(links, nodes)
-   #print "PATHS=", json.dumps(paths, indent=4)
-   #print "LINK_LIST=", json.dumps(link_list, indent=4)
-   #print "CONSTRAINT_LIST=", json.dumps(constraint_list, indent=4)
-   
-   
-   return { "links": links, "nodes": nodes, "paths": paths, "link_list": link_list, "constraint_list": constraint_list }
-
-def process_spec(links, nodes, source, spec_nodes, level, n, counter, Latency_Table, BW_Table):
+def process_spec(links, nodes, source, spec_nodes, level, n, context):
     if spec_nodes == {}:
-       nodes[n[0]] = { "Datacenter": counter[0], "Cluster": counter[1], "Switch": counter[2], "ID": source }
+       nodes[n[0]] = { "Datacenter": context[0], "Cluster": context[1], "Switch": context[2], "ID": source }
        n[0] = n[0] + 1
        return 
     if "LT" in spec_nodes:
        latency = spec_nodes['LT']
-    elif level < len(Latency_Table):
-       latency = Latency_Table[level]
     else:
        raise Exception("Cannot determine latency: %s, level: %d!" % (source, level))
          
     if 'BW' in spec_nodes:
-       bandwidth = spec_nodes['BW']
-    elif level < len(BW_Table):
-       bandwidth = BW_Table[level]         
+       bandwidth = spec_nodes['BW']      
     else:
        raise Exception("Cannot determine bandwidth: %s, level: %d" % (source, level))
 
     for target in spec_nodes:
        if target != 'BW' and target != 'LT':
-          key = "l_" + source + "_" + target      
+          key = "l_" + source + "_" + target   
+          #print ":::>", ' ' * level*4, key, ":", context[0], ":", context[1], ":", context[2]    
           links[key] = { "Type": "Link", "Source": source, "Target": target, \
                         "Attributes": { "Latency": latency, "Bandwidth": bandwidth } }
-          process_spec(links, nodes, target, spec_nodes[target], level+1, n, copy.copy(counter), Latency_Table, BW_Table)
-          if level < len(counter):
-             counter[level] = counter[level] + 1
-
+          if level < len(context):
+             context[level] = target
+          process_spec(links, nodes, target, spec_nodes[target], level+1, n, context)
              
-def gen_topology(Latency_Table, BW_Table, spec_nodes):    
+def gen_topology(spec_nodes):    
     # Generate nodes and links
     links = { }
     nodes = { }
-    counter = [0, 0, 0]
+    context = ["", "", ""]
     
-    for s in spec_nodes:
-       process_spec(links, nodes, "root", spec_nodes, 0, [0], counter, Latency_Table, BW_Table)
-       
+    process_spec(links, nodes, "root", spec_nodes, 0, [0], context)
     #print "LINKS=", json.dumps(links, indent=4) 
     #print "NODES=", json.dumps(nodes, indent=4)
       
@@ -85,7 +111,7 @@ def gen_paths(links, nodes):
     paths = { }
     link_list = { }
     z = 0
-
+    
     # Generate link lists for each path
     for i in range( len(nodes) ):
         for j in range( i+1, len(nodes) ):
@@ -131,29 +157,29 @@ def gen_paths(links, nodes):
 
             # Inter-Datacenter links
             if not ( intraDatacenter ):
-                key = "l_" + "root" + "_" + "DC" + `dc1`
+                key = "l_" + "root" + "_" + dc1
                 link_list[ pathID ].append( key )
-                key = "l_" + "root" + "_" + "DC" + `dc2`
+                key = "l_" + "root" + "_" + dc2
                 link_list[ pathID ].append( key )
 
             # Inter-Cluster links
             if not ( intraCluster ):
-                key = "l_" + "DC" + `dc1` + "_" + "C" + `c1`
+                key = "l_" + dc1 + "_" + c1
                 link_list[ pathID ].append( key )
-                key = "l_" + "DC" + `dc2` + "_" + "C" + `c2`
+                key = "l_" + dc2 + "_" + c2
                 link_list[ pathID ].append( key )
 
             # Inter-Switch links
             if not ( intraSwitch ):
-                key = "l_" + "C" + `c1` + "_" + "S" + `s1`
+                key = "l_" + c1 + "_" +  s1
                 link_list[ pathID ].append( key )
-                key = "l_" + "C" + `c2` + "_" + "S" + `s2`
+                key = "l_" + c2 + "_" + s2
                 link_list[ pathID ].append( key )
 
             # Intra-Switch links
-            key = "l_" + "S" + `s1` + "_" + "N" + `i`
+            key = "l_" + s1 + "_" + nodes[i]["ID"]
             link_list[ pathID ].append( key )
-            key = "l_" + "S" + `s2` + "_" + "N" + `j`
+            key = "l_" + s2 + "_" + nodes[j]["ID"]
             link_list[ pathID ].append( key )
 
 
@@ -174,10 +200,13 @@ def gen_paths(links, nodes):
             paths[ pathID ]["Attributes"]["Latency"]   = 0
             paths[ pathID ]["Attributes"]["Source"] = nodes[i]["ID"]
             paths[ pathID ]["Attributes"]["Target"] =  nodes[j]["ID"]
-                
+    
+    #print "paths :::>", json.dumps(paths, indent=4) 
+    
+    #print "link_list :::>", json.dumps(link_list, indent=4)          
     # Calculate bandwidth/latency
     calculate_attribs(paths, link_list, links)
-
+    
     # Generate constraints
     constraint_list = gen_constraints(link_list, links)
 
@@ -390,7 +419,7 @@ def link_check_reservation (link_res, resIDs):
         if resID not in link_res:
            raise Exception("Cannot find reservation ID: %s" % resID)
            
-        result[resID] = { "Ready": "True", "Address": ["path://%s" % resID] }
+        result[resID] = { "Ready": "True", "Address": ["virtual-link://%s" % resID] }
         
     return { "Instances": result }
          

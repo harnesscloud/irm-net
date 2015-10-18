@@ -25,15 +25,20 @@ class NETResourcesView(ResourcesView):
        if net_managers_view.NETManagersView.net_operational():
           for r in NETResourcesView.resources:
              resources.update(NETResourcesView.resources[r])
-          if NETResourcesView.Topology == None:
-             print "WAHTC???", NETResourcesView.Topology
-             machines = {k: v for k, v in resources.items() if v["Type"] == "Machine"}
-             NETResourcesView.Topology = link_gen_topology(machines)    
-          resources.update(NETResourcesView.Topology["paths"])
+         
+          #machines = {k: v for k, v in resources.items() if v["Type"] == "Machine"}
+          machines = { "controller": {}, "compute-001": {}, "compute-002": {}}
+          if machines != {} and NETResourcesView.Topology == None:
+             NETResourcesView.Topology = link_gen_topology(machines)   
+                    
+          if NETResourcesView.Topology != None: 
+             resources.update(NETResourcesView.Topology["paths"])
           
           ret = { "Resources": resources }
-          if len(NETResourcesView.Topology["constraint_list"]) > 0:
-             ret["Constraints"] = NETResourcesView.Topology["constraint_list"]
+          if NETResourcesView.Topology != None and \
+             len(NETResourcesView.Topology["constraint_list"]) > 0:
+                ret["Constraints"] = NETResourcesView.Topology["constraint_list"]
+          
           return ret
        else:
           net_managers_view.NETManagersView.disconnect_crs()

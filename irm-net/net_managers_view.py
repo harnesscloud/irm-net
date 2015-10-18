@@ -12,6 +12,7 @@ class NETManagersView(ManagersTreeView):
     CRS_HOST = 'localhost'
     CRS_PORT = 56788    
     MANAGER_ID = None
+    PORT = 7779
     
     CRS_DISABLE = False
     IGNORE_IRMS = False
@@ -36,7 +37,7 @@ class NETManagersView(ManagersTreeView):
        
     @staticmethod
     def register_crs():
-       out=hresman.utils.post({"Port":7779, "Name": "IRM-NET"} , 'registerManager',\
+       out=hresman.utils.post({"Port":NETManagersView.PORT, "Name": "IRM-NET"} , 'registerManager',\
                          NETManagersView.CRS_PORT,\
                          NETManagersView.CRS_HOST) 
        if not isinstance(out, dict) or "result" not in out:
