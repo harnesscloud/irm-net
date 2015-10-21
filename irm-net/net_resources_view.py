@@ -26,8 +26,8 @@ class NETResourcesView(ResourcesView):
           for r in NETResourcesView.resources:
              resources.update(NETResourcesView.resources[r])
          
-          #machines = {k: v for k, v in resources.items() if v["Type"] == "Machine"}
-          machines = { "controller": {}, "compute-001": {}, "compute-002": {}}
+          machines = {k: v for k, v in resources.items() if v["Type"] == "Machine"}
+          #machines = { "controller": {}, "compute-001": {}, "compute-002": {}}
           if machines != {} and NETResourcesView.Topology == None:
              NETResourcesView.Topology = link_gen_topology(machines)   
                     
