@@ -1,10 +1,8 @@
 [
-  { "name": "control", "cluster": "rennes" },
-  { "name": "compute", "cluster": "nantes" },
-  { "name": "rennes", "latency": 10, "bandwidth": 50 },
-  { "name": "nantes", "latency": 12, "bandwidth": 3500 },
-  { "name": "DC", "latency": 15, "bandwidth": 35 },
+  { "name": "paranoia", "cluster": "rennes" },
+  { "name": "econome", "cluster": "nantes" },
+  { "name": "rennes", "latency": 0.5, "bandwidth": 100 },
+  { "name": "nantes", "latency": 0.1, "bandwidth": 80 },
+  { "name": "DC", "latency": 10, "bandwidth": 50 },
   { "name": "",  "cluster": "my-cluster", "latency": 20, "bandwidth": 400 }
-  
-  
 ]
