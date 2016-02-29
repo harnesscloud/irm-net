@@ -17,6 +17,17 @@ from hresman.utils import post
 from operator import itemgetter
 from net_links import link_create_reservation, link_release_reservation, link_check_reservation
 import copy
+import logging
+import logging.handlers as handlers
+
+#Config and format for logging messages
+logger = logging.getLogger("Rotating Log")
+logger.setLevel(logging.DEBUG)
+formatter = logging.Formatter(fmt='%(asctime)s.%(msecs)d - %(levelname)s: %(filename)s - %(funcName)s: %(message)s', datefmt='%d/%m/%Y %H:%M:%S')
+handler = handlers.TimedRotatingFileHandler("n-irm.log",when="H",interval=24,backupCount=0)
+## Logging format
+handler.setFormatter(formatter)
+logger.addHandler(handler)
 
 class NETReservationsView(ReservationsView):
 
@@ -26,62 +37,83 @@ class NETReservationsView(ReservationsView):
 
     ###############################################  create reservation ############ 
     def _create_reservation(self, scheduler, alloc_req, alloc_constraints, monitor):
+        logger.info("Called")
+
         NETManagersView.expect_ready_manager()
-        
+
         groups = {}
-        #print "alloc_req=", json.dumps(alloc_req)
+        #logger.info("alloc_req=%s", json.dumps(alloc_req))
         #print "monitor=", monitor
-        
+
         NETResourcesView()._get_alloc_spec()
-                 
+
         # first check that we can support all allocation requests
         for req in alloc_req:
            if req["Type"] not in NETReservationsView.SupportedTypes:
               raise Exception("Do not support allocation request type: %s!" % req["Type"])
-        
+
         # add original order, so that we do not lose it when we sort
         n = 1
         for elem in alloc_req:
            elem['pos'] = n
            n = n + 1
-                
+
         # sort the allocation requests
         salloc_req = sorted(alloc_req, key=lambda x: NETReservationsView.SupportedTypes[x["Type"]])
-        
-        #print "salloc_req=", json.dumps(salloc_req)
+        #logger.info("salloc_req=%s", json.dumps(salloc_req))
+
         reservations=[]
         rollback = False
         error_msg = ""
+
+        # List of reserved resources, of type "Machine";
+        # The reservation IDs are needed during bandwidth allocation
+        reservedMachines=[]
+
         try:
            for req in salloc_req:
+              #
+              # Available ManagersTypes: Subnet, Machines, PublicIP
+              #
               if req["Type"] in NETResourcesView.ManagersTypes:
                  manager = NETManagersView.managers[NETResourcesView.ManagersTypes[req["Type"]]] 
               else:
                  manager = None
-                
+
               if req["Type"] == "PublicIP" and "Attributes" in req and "VM" in req["Attributes"] and \
                      req["Attributes"]["VM"] in groups:
                  req["Attributes"]["VM"] = groups[req["Attributes"]["VM"]]["resID"]  
-              
+
+              #
+              # Relevant for Gabriel's CRS algorithm
+              #
               if req["Type"] == "Link" and "Attributes" in req and "Source" in req["Attributes"] and \
                      req["Attributes"]["Source"] in groups:
                  req["Attributes"]["Source"] = groups[req["Attributes"]["Source"]]["ID"]
 
+              #
+              # Relevant for Gabriel's CRS algorithm
+              #
               if req["Type"] == "Link" and "Attributes" in req and "Target" in req["Attributes"] and \
                      req["Attributes"]["Target"] in groups:
                  req["Attributes"]["Target"] = groups[req["Attributes"]["Target"]]["ID"]
-                                         
+
+              #
+              # Handle the requested resource types, according to manager.
+              # TODO Links need their manager. IRM-Link?
+              #
               if manager != None:              
                  ret = post({"Allocation": [req], "Monitor": monitor}, "createReservation", \
                             manager["Port"], manager["Address"])
               elif req["Type"] == "Link":
                  topology = NETResourcesView.Topology
                  id = link_create_reservation(topology["links"], topology["paths"], topology["link_list"],\
-                                              NETReservationsView.LinkReservations, req) 
+                                              NETReservationsView.LinkReservations, req,\
+                                              reservedMachines)
                  ret = { "result": { "ReservationID": [id] }} 
               else:
                  raise Exception("internal error: type %s not supported!" % req["Type"])
-                               
+
               if "result" in ret and "ReservationID" in ret["result"]:
                  rID = ret["result"]["ReservationID"]
                  if len(rID) != 1:
@@ -96,12 +128,22 @@ class NETReservationsView(ReservationsView):
                     reservations.append({ "addr": manager["Address"], "port": manager["Port"], \
                                           "name": manager["Name"], "ManagerID": manager["ManagerID"], \
                                           "iRes": rID, "pos": req["pos"], "type": req["Type"] })
+                    #
+                    # Add reserved machines to @reservedMachines list.
+                    # Simplified list to be passed to @net_links.link_create_reservation( ... )
+                    #
+                    if req["Type"] == "Machine" :
+                        reservedMachines.append({ "ID": rID[0], "Host": req["ID"]})
+
                  else:                                       
                      reservations.append({ "addr": None, "port": None, \
                                           "name": "IRM-NET", "ManagerID": None, \
                                           "iRes": rID, "pos": req["pos"], "type": req["Type"] })                                     
               else:
                  raise Exception("internal error: %s" % str(ret))
+
+              #logger.info("ResID: %s Request: %s", rID, json.dumps(req))
+
         except Exception as e:
            print "rolling back! " + str(e)
            error_msg = str(e)
@@ -119,9 +161,11 @@ class NETReservationsView(ReservationsView):
               except:
                 pass  
            raise Exception("cannot make reservation! (rollbacking): %s" % error_msg)  
-        
+
+        #logger.info("reservations=%s", json.dumps(ReservationsView.reservations[str(resID)]))
         return { "ReservationID" : [str(resID)] }          
-           
+
+
     ###############################################  check reservation ############   
     def _check_reservation(self, reservations):
        check_result = { "Instances": {} }
@@ -192,6 +236,3 @@ class NETReservationsView(ReservationsView):
           raise Exception("could not release all reservations!")                           
        
        return {}            
-                   
-  
-

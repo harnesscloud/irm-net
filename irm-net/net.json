@@ -1,8 +1,10 @@
 [
-  { "name": "paranoia", "cluster": "rennes" },
-  { "name": "econome", "cluster": "nantes" },
-  { "name": "rennes", "latency": 0.5, "bandwidth": 100 },
-  { "name": "nantes", "latency": 0.1, "bandwidth": 80 },
-  { "name": "DC", "latency": 10, "bandwidth": 50 },
+  { "name": "paranoia",  "cluster": "rennes" },
+  { "name": "parasilo",  "cluster": "rennes" },
+  { "name": "paravance", "cluster": "rennes" },
+  { "name": "econome",   "cluster": "nantes" },
+  { "name": "rennes", "latency": 0.5, "bandwidth": 1000 },
+  { "name": "nantes", "latency": 0.1, "bandwidth": 1000 },
+  { "name": "DC", "latency": 10, "bandwidth": 200 },
   { "name": "",  "cluster": "my-cluster", "latency": 20, "bandwidth": 400 }
 ]

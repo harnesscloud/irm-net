@@ -1,8 +1,55 @@
+import requests, subprocess
+import ConfigParser, optparse
+import logging, logging.handlers as handlers
 import json
 import copy
 import uuid
 import os
 import sys
+
+import re           # grep IPs using regex
+import paramiko     # ssh remote commands
+
+
+################################## CLI Stuff - Start ##################################
+
+
+#
+# Config and format for logging messages
+#
+logger = logging.getLogger("Rotating Log")
+logger.setLevel(logging.DEBUG)
+formatter = logging.Formatter(fmt='%(asctime)s.%(msecs)d - %(levelname)s: %(filename)s - %(funcName)s: %(message)s', datefmt='%d/%m/%Y %H:%M:%S')
+handler = handlers.TimedRotatingFileHandler("n-irm.log",when="H",interval=24,backupCount=0)
+## Logging format
+handler.setFormatter(formatter)
+if not logger.handlers:
+    logger.addHandler(handler)
+
+def init():
+    #
+    # Read OpenStack configuration
+    #
+    global CONFIG
+    if 'CONFIG' not in globals():
+        CONFIG = ConfigParser.RawConfigParser()
+        CONFIG.read('irm-net.cfg')
+
+    if CONFIG.has_option('main', 'USERNAME'):
+        os.environ['OS_USERNAME'] = CONFIG.get('main', 'USERNAME')
+
+    if CONFIG.has_option('main', 'TENANT_NAME'):
+        os.environ['OS_TENANT_NAME'] = CONFIG.get('main','TENANT_NAME')
+
+    if CONFIG.has_option('main', 'PASSWORD'):
+        os.environ['OS_PASSWORD'] = CONFIG.get('main','PASSWORD')
+
+    if CONFIG.has_option('main', 'AUTH_URL'):
+        os.environ['OS_AUTH_URL'] = CONFIG.get('main','AUTH_URL')
+
+
+################################## CLI Stuff - End ####################################
+################################## API Stuff - Start ##################################
 
 def load_spec_nodes(mchn):
    curr = os.path.dirname(os.path.abspath(__file__))
@@ -376,13 +423,14 @@ def link_calc_capacity(resource, allocation, release):
     
     return {"Resource": {"Type": "Link", "Attributes": { "Source": source, "Target": target, "Bandwidth": bandwidth } }} 
 
-def link_create_reservation (links, paths, link_list, link_res, req):
-        
-    #print "paths=", json.dumps(paths, indent=4)
-    #print "links=", json.dumps(links, indent=4)
-    #print "link_list=", json.dumps(link_list, indent=4)
-    #print "link_res=", json.dumps(link_res, indent=4)
-    #print "req=", json.dumps(req, indent=4)
+def link_create_reservation (links, paths, link_list, link_res, req, reservedMachines):
+    logger.info("Called")
+
+    #logger.info("paths=%s", json.dumps(paths))
+    #logger.info("links=%s", json.dumps(links))
+    #logger.info("link_list=%s", json.dumps(link_list))
+    #logger.info("link_res=%s", json.dumps(link_res))
+    #logger.info("req=%s", json.dumps(req))
     
     # find the ID; it is either provided (Damian's CRS, or it needs to be found)
     
@@ -408,27 +456,43 @@ def link_create_reservation (links, paths, link_list, link_res, req):
        if req['ID'] not in paths:
           raise Exception("Cannot find path: %s" % req['ID'])
        pathID = req['ID']
-    
+
+    #
+    # Sanity check: proper bandwidth has been provided
+    #
     if 'Bandwidth' not in req['Attributes']:
        raise Exception("Bandwidth attribute required!")
     bandwidth = req['Attributes']['Bandwidth']
     if bandwidth <= 0:
        raise Exception("Invalid bandwidth %.2f requested!" % bandwidth)
-    
-    # check first if there is enough bandwidth in each link
-                      
+
+    #
+    # Sanity check: there is enough bandwidth in each link
+    #
     for linkID in link_list[ pathID ]:
        if bandwidth > links[ linkID ]["Attributes"]["Bandwidth"]:
           raise Exception("Not enough bandwidth (%.2f) in path: %s" % (bandwidth, pathID))
 
+    #
+    # "Reserve" bandwidth on the links
+    #
     for linkID in link_list[ pathID ]:      
        links[ linkID ]["Attributes"]["Bandwidth"] = links[ linkID ]["Attributes"]["Bandwidth"] - bandwidth 
- 
+
+    #
+    # Create the reservation ID
+    #
     resID = str(uuid.uuid1())
-     
     link_res[resID] = { "pathID": pathID, "bandwidth": bandwidth }
-       
+
+    #
+    # Update the paths, since we might have reserved bandwidth
+    # on a bottleneck link
+    #
     calculate_attribs(paths, link_list, links)
+    install_traffic_rules( paths[pathID]["Attributes"]["Source"], \
+            paths[pathID]["Attributes"]["Target"],
+            bandwidth, reservedMachines )
     
     return resID
     
@@ -465,6 +529,164 @@ def link_check_reservation (link_res, resIDs):
         result[resID] = { "Ready": "True", "Address": ["virtual-link://%s" % resID] }
         
     return { "Instances": result }
-         
 
 
+################################## API Stuff - End ####################################
+################################## Lib Stuff - Start ##################################
+
+#
+# TODO close processes
+# http://kendriu.com/how-to-use-pipes-in-python-subprocesspopen-objects
+#
+def install_traffic_rules( sourceHost, targetHost, bandwidth, machineList ):
+
+    sourceID = None
+    targetID = None
+
+    #
+    # Iterate @machineList and find the IDs.
+    # FIXME we assume that there is a 1-1 match between hosts and containers.
+    # TODO scenario when two containers are on the same host.
+    # json format of each machine element in @machineList:
+    #   {"Host" : compute-host, "ID": ID of container}
+    #
+    for machine in machineList:
+        if machine["Host"] == sourceHost :
+            sourceID = machine["ID"]
+        if machine["Host"] == targetHost :
+            targetID = machine["ID"]
+        if sourceID is not None and targetID is not None :
+            break
+
+    if sourceID is None or targetID is None :
+        raise Exception("Could not find IDs of containers in hosts " + sourceHost + ", " + targetHost)
+
+    #
+    # Translate IDs to Private IPs
+    # Function returns False on error
+    #
+    sourceIP = get_private_IP_from_ID( sourceID )
+    targetIP = get_private_IP_from_ID( targetID )
+
+    if not sourceIP or not targetIP :
+        raise Exception("Could not find Private IPs for containers " + sourceID + ", " + targetID)
+
+    #
+    # Install rules on both containers
+    #
+    traffic_rules_propagate( sourceIP, targetIP, [bandwidth] )
+    traffic_rules_propagate( targetIP, sourceIP, [bandwidth] )
+
+
+#
+# Parameters:
+#   @srcIP          Private IP of container where the rules will be installed
+#   @dstIP          Private IP of the second container that these rules concern
+#   @bandwidthList  List Requested bandwidth in Mbit/sec
+#   FIXME run on harness-iaas-services: "ssh-copy-id root@conpaasIP
+#   TODO  add harness-iaas-services' key @ conpaas-director
+#   FIXME containers with no reservations should get the default rules anyway: new image?
+#
+def traffic_rules_propagate( srcIP, dstIP, bandwidthList ):
+
+    #
+    # Craft bandwidth requests
+    #
+    bwReq = []
+    for bandwidth in bandwidthList:
+        bwReq.append({'Target': dstIP, 'Rate': str(bandwidth)+"mbit"})
+
+    #
+    # TC Installation Base File
+    # Read it; replace the placeholders.
+    #
+    tcBaseFile = "tcinstall-base.sh"
+    file_ = open(tcBaseFile,'r')
+
+    tcBaseData = file_.read()
+    file_.close()
+    tcCommand = tcBaseData.replace('__BWRATESTRING',json.JSONEncoder().encode(bwReq))
+
+    #
+    # Retrieve conpaasIP
+    #
+    conpaasIP = get_public_IP_from_ID( 'conpaas-director' )
+    if conpaasIP is None:
+        raise Exception("Could not retrieve Public IP of conpaas-director")
+
+    #
+    # Craft remote command @ conpaas-director
+    #
+    conpaasCommand = 'ssh root@' + srcIP + ' bash -s << EOF\n' + tcCommand + '\nEOF'
+
+    #
+    # Connect to conpaas-director
+    #
+    try:
+        client = paramiko.SSHClient()
+        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        client.connect(conpaasIP, username='root')
+    except paramiko.AuthenticationException:
+        raise Exception("Authentication failed when connecting to conpaas-director")
+
+    stdin, stdout, stderr = client.exec_command( conpaasCommand )
+    client.close()
+
+
+#
+# Methods:
+#   get_private_IP_from_ID
+#   get_public_IP_from_ID
+# Purpose:
+#   Returns the private or the public IP of a container
+#   FIXME assuming private IP of 192.168.xxx.xxx
+#   FIXME assuming public  IP of  10.xxx.xxx.xxx
+#   TODO import private IP range from config file.
+# Parameters:
+#   @entryID    The ID of the container
+# Returns:
+#   Success:    First match found
+#   Else:       None
+#
+def get_private_IP_from_ID( entryID ):
+    return get_IP_from_ID( entryID, '192\.168\.[0-9]+\.[0-9]+' )
+def get_public_IP_from_ID( entryID ):
+    return get_IP_from_ID( entryID, '10\.[0-9]+\.[0-9]+\.[0-9]+' )
+
+#
+# Method:
+#   get_IP_from_ID
+# Purpose:
+#   Retrieves the IP of a container based on a regular expression
+# Parameters:
+#   @entryID    The ID of the container
+#   @regexIP    The IP regular expression to look up
+# Returns:
+#   Success:    First match found
+#   Else:       None
+#
+def get_IP_from_ID( entryID, regexIP ):
+
+    novaIn = ["nova", "show", entryID]
+    process = subprocess.Popen(novaIn, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    novaOut, novaErr = process.communicate()
+
+    if novaErr:
+        logger.error(novaErr)
+        return None
+
+    matches=re.findall(regexIP, novaOut)
+
+    if matches is None:
+        logger.error("Unable to find IP for " + entryID + " from regex " + regexIP)
+        return None
+
+    return matches[0]
+
+
+################################## Lib Stuff - End ####################################
+
+#
+# Initialize config variables
+#
+init()
