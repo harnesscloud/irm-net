@@ -65,7 +65,7 @@ if options.config:
     NETReservationsView.USERNAME    = CONFIG.get('main', 'USERNAME')
     NETReservationsView.PASSWORD    = CONFIG.get('main', 'PASSWORD')
     NETReservationsView.TENANT_NAME = CONFIG.get('main', 'TENANT_NAME')
-    NETReservationsView.AUTH_URL    = CONFIG.get('main', 'AUTH_URL')
+    NETReservationsView.AUTH_URL    = CONFIG.get('main', 'NOVA_ENDPOINT')
 else:
     #FIXME Add defaults
     raise Exception("No config file is defined; run ./app.py -c <config>")
