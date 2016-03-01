@@ -50,8 +50,25 @@ parser.add_option("-d", "--disable-crs", dest="CRS_DISABLE", default=False,
                   
 parser.add_option("-i", "--ignore-irms", dest="IGNORE_IRMS", default=False,
                   help="ignore IRM-NOVA and IRM-NEUTRON", action="store_true")                                        
+
+parser.add_option("-c", "--config", dest = "config", default = False,
+                  help="config file to run the IRM-net in daemon mode", action="store")
                 
 (options,_) = parser.parse_args()
+
+if options.config:
+    global CONFIG
+    CONFIG = ConfigParser.RawConfigParser()
+    CONFIG.read(options.config)
+
+    NETReservationsView.USERNAME    = CONFIG.get('main', 'USERNAME')
+    NETReservationsView.PASSWORD    = CONFIG.get('main', 'PASSWORD')
+    NETReservationsView.TENANT_NAME = CONFIG.get('main', 'TENANT_NAME')
+    NETReservationsView.AUTH_URL    = CONFIG.get('main', 'AUTH_URL')
+else:
+    #FIXME Add defaults
+    raise Exception("No config file is defined; run ./app.py -c <config>")
+
 
 def request_resources (): 
   global options
@@ -79,12 +96,3 @@ if not NETManagersView.CRS_DISABLE:
    NETManagersView.register_crs()   
 print "running..."        
 mgr.run(options.PORT)
-
-   
-   
-
-      
-
-  
-   
-
