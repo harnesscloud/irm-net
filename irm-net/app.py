@@ -7,6 +7,7 @@ import threading;
 from hresman.manager import HarnessResourceManager
 import hresman.utils
 import logging
+import ConfigParser
 from optparse import OptionParser
 
 from net_managers_view import NETManagersView
