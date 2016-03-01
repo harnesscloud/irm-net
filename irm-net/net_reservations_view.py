@@ -31,12 +31,6 @@ logger.addHandler(handler)
 
 class NETReservationsView(ReservationsView):
 
-    # OpenStack environment variables
-    USERNAME    = None
-    PASSWORD    = None
-    TENANT_NAME = None
-    AUTH_URL    = None
-
     # we rank each type according to the order in which we create it
     SupportedTypes = { "Machine": 2, "PublicIP": 3, "Subnet": 1, "Link": 4 }
     LinkReservations = {}

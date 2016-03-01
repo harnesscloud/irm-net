@@ -33,7 +33,7 @@ def init():
     global CONFIG
     if 'CONFIG' not in globals():
         CONFIG = ConfigParser.RawConfigParser()
-        CONFIG.read('irm-net.cfg')
+        CONFIG.read('../../cfg/irm-net.cfg')
 
     if CONFIG.has_option('main', 'USERNAME'):
         os.environ['OS_USERNAME'] = CONFIG.get('main', 'USERNAME')
@@ -44,8 +44,8 @@ def init():
     if CONFIG.has_option('main', 'PASSWORD'):
         os.environ['OS_PASSWORD'] = CONFIG.get('main','PASSWORD')
 
-    if CONFIG.has_option('main', 'AUTH_URL'):
-        os.environ['OS_AUTH_URL'] = CONFIG.get('main','AUTH_URL')
+    if CONFIG.has_option('main', 'NOVA_ENDPOINT'):
+        os.environ['OS_AUTH_URL'] = CONFIG.get('main','NOVA_ENDPOINT')
 
 
 ################################## CLI Stuff - End ####################################
