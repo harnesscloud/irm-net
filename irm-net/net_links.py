@@ -38,7 +38,7 @@ def init():
         # see irm-neutron and supervisord.conf under iaas-deployment-docker-image.
         #
         CONFIG = ConfigParser.RawConfigParser()
-        CONFIG.read('../../cfg/irm-net.cfg')
+        CONFIG.read('../cfg/irm-net.cfg')
 
     if CONFIG.has_option('main', 'USERNAME'):
         os.environ['OS_USERNAME'] = CONFIG.get('main', 'USERNAME')
