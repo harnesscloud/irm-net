@@ -10,6 +10,9 @@ import sys
 import re           # grep IPs using regex
 import paramiko     # ssh remote commands
 
+# Floating IP of conpaas-director
+FIP_CONPAAS_DIRECTOR = None
+
 
 ################################## CLI Stuff - Start ##################################
 
@@ -588,9 +591,6 @@ def install_traffic_rules( sourceHost, targetHost, bandwidth, machineList ):
 #   @srcIP          Private IP of container where the rules will be installed
 #   @dstIP          Private IP of the second container that these rules concern
 #   @bandwidthList  List Requested bandwidth in Mbit/sec
-#   FIXME run on harness-iaas-services: "ssh-copy-id root@conpaasIP
-#   TODO  add harness-iaas-services' key @ conpaas-director
-#   FIXME containers with no reservations should get the default rules anyway: new image?
 #
 def traffic_rules_propagate( srcIP, dstIP, bandwidthList ):
 
@@ -613,9 +613,18 @@ def traffic_rules_propagate( srcIP, dstIP, bandwidthList ):
     tcCommand = tcBaseData.replace('__BWRATESTRING',json.JSONEncoder().encode(bwReq))
 
     #
-    # Retrieve conpaasIP
+    # Retrieve conpaasIP if not already there.
+    # We assume that it does not change.
+    # TODO retrieve again if cannot connet
     #
-    conpaasIP = get_public_IP_from_ID( 'conpaas-director' )
+    global FIP_CONPAAS_DIRECTOR
+    if FIP_CONPAAS_DIRECTOR is None :
+        FIP_CONPAAS_DIRECTOR = get_public_IP_from_ID( 'conpaas-director' )
+
+    #
+    # Use a local variable now
+    #
+    conpaasIP = FIP_CONPAAS_DIRECTOR
     if conpaasIP is None:
         raise Exception("Could not retrieve Public IP of conpaas-director")
 
@@ -626,6 +635,7 @@ def traffic_rules_propagate( srcIP, dstIP, bandwidthList ):
 
     #
     # Connect to conpaas-director
+    # TODO timeout?
     #
     try:
         client = paramiko.SSHClient()
