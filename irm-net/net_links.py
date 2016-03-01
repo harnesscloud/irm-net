@@ -32,6 +32,11 @@ def init():
     #
     global CONFIG
     if 'CONFIG' not in globals():
+        #
+        # FIXME Not elegant to read config file outside of the repository
+        # TODO Pass configuration through app.py and NetReservationView;
+        # see irm-neutron and supervisord.conf under iaas-deployment-docker-image.
+        #
         CONFIG = ConfigParser.RawConfigParser()
         CONFIG.read('../../cfg/irm-net.cfg')
 
