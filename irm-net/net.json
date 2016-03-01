@@ -3,8 +3,10 @@
   { "name": "parasilo",  "cluster": "rennes" },
   { "name": "paravance", "cluster": "rennes" },
   { "name": "econome",   "cluster": "nantes" },
+  { "name": "grisou",    "cluster": "nancy" },
   { "name": "rennes", "latency": 0.5, "bandwidth": 1000 },
   { "name": "nantes", "latency": 0.1, "bandwidth": 1000 },
+  { "name": "nancy",  "latency": 0.1, "bandwidth": 1000 },
   { "name": "DC", "latency": 10, "bandwidth": 200 },
   { "name": "",  "cluster": "my-cluster", "latency": 20, "bandwidth": 400 }
 ]
