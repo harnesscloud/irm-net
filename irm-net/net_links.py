@@ -50,7 +50,7 @@ def init():
         os.environ['OS_PASSWORD'] = CONFIG.get('main','PASSWORD')
 
     if CONFIG.has_option('main', 'NOVA_ENDPOINT'):
-        os.environ['OS_AUTH_URL'] = CONFIG.get('main','NOVA_ENDPOINT')
+        os.environ['OS_AUTH_URL'] = "http://%s/v2.0" % CONFIG.get('main','NOVA_ENDPOINT')
 
 
 ################################## CLI Stuff - End ####################################
@@ -429,7 +429,7 @@ def link_calc_capacity(resource, allocation, release):
     return {"Resource": {"Type": "Link", "Attributes": { "Source": source, "Target": target, "Bandwidth": bandwidth } }} 
 
 def link_create_reservation (links, paths, link_list, link_res, req, reservedMachines):
-    logger.info("Called")
+    #logger.info("Called")
 
     #logger.info("paths=%s", json.dumps(paths))
     #logger.info("links=%s", json.dumps(links))
