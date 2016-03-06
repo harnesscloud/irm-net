@@ -18,16 +18,9 @@ from operator import itemgetter
 from net_links import link_create_reservation, link_release_reservation, link_check_reservation
 import copy
 import logging
-import logging.handlers as handlers
 
 #Config and format for logging messages
 logger = logging.getLogger("Rotating Log")
-logger.setLevel(logging.DEBUG)
-formatter = logging.Formatter(fmt='%(asctime)s.%(msecs)d - %(levelname)s: %(filename)s - %(funcName)s: %(message)s', datefmt='%d/%m/%Y %H:%M:%S')
-handler = handlers.TimedRotatingFileHandler("n-irm.log",when="H",interval=24,backupCount=0)
-## Logging format
-handler.setFormatter(formatter)
-logger.addHandler(handler)
 
 class NETReservationsView(ReservationsView):
 
@@ -42,7 +35,7 @@ class NETReservationsView(ReservationsView):
         NETManagersView.expect_ready_manager()
 
         groups = {}
-        #logger.info("alloc_req=%s", json.dumps(alloc_req))
+        #logger.info("alloc_req=%s", json.dumps(alloc_req,indent=4))
         #print "monitor=", monitor
 
         NETResourcesView()._get_alloc_spec()
