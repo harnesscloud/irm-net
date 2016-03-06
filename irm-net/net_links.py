@@ -252,6 +252,14 @@ def gen_paths(links, nodes):
             elif ( s1 != s2 ):
                 intraSwitch = False
 
+            '''
+            # Ignore all non-intraSwitch paths;
+            # Reduce the previously-increased z;
+            # TODO just increase z at the end of the loop
+            if not intraSwitch:
+                z = z - 1
+                continue
+            '''
 
             # Inter-Datacenter links
             if not ( intraDatacenter ):
