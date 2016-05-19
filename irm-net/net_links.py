@@ -29,6 +29,8 @@ handler.setFormatter(formatter)
 if not logger.handlers:
     logger.addHandler(handler)
 
+irm_net_path = os.path.dirname(os.path.abspath(__file__))
+
 def init():
     #
     # Read OpenStack configuration
@@ -41,7 +43,7 @@ def init():
         # see irm-neutron and supervisord.conf under iaas-deployment-docker-image.
         #
         CONFIG = ConfigParser.RawConfigParser()
-        CONFIG.read('../cfg/irm-net.cfg')
+        CONFIG.read(irm_net_path + '/../../cfg/irm-net.cfg')
 
     if CONFIG.has_option('main', 'USERNAME'):
         os.environ['OS_USERNAME'] = CONFIG.get('main', 'USERNAME')
@@ -121,7 +123,7 @@ def load_spec_nodes(mchn):
          dc['LT'] = dc_rule['latency']
    dc.update(clusters)
 
-   print ":::::::::::::>", json.dumps(spec_nodes, indent=4)   
+   #print ":::::::::::::>", json.dumps(spec_nodes, indent=4)   
    return spec_nodes
 
    
@@ -439,7 +441,7 @@ def link_calc_capacity(resource, allocation, release):
     
     return {"Resource": {"Type": "Link", "Attributes": { "Source": source, "Target": target, "Bandwidth": bandwidth } }} 
 
-def link_create_reservation (links, paths, link_list, link_res, req, reservedMachines):
+def link_create_reservation (links, paths, link_list, link_res, req, reservedLinkResources):
     #logger.info("Called")
 
     #logger.info("paths=%s", json.dumps(paths))
@@ -450,6 +452,7 @@ def link_create_reservation (links, paths, link_list, link_res, req, reservedMac
     
     # find the ID; it is either provided (Damian's CRS, or it needs to be found)
     
+    print "req===>", req
     
     pathID = None
     if 'ID' not in req:
@@ -508,7 +511,7 @@ def link_create_reservation (links, paths, link_list, link_res, req, reservedMac
     calculate_attribs(paths, link_list, links)
     install_traffic_rules( paths[pathID]["Attributes"]["Source"], \
             paths[pathID]["Attributes"]["Target"],
-            bandwidth, reservedMachines )
+            bandwidth, reservedLinkResources )
     
     return resID
     
@@ -554,44 +557,59 @@ def link_check_reservation (link_res, resIDs):
 # TODO close processes
 # http://kendriu.com/how-to-use-pipes-in-python-subprocesspopen-objects
 #
-def install_traffic_rules( sourceHost, targetHost, bandwidth, machineList ):
+def install_traffic_rules( sourceHost, targetHost, bandwidth, reservedLinkResources ):
 
-    sourceID = None
-    targetID = None
+    
+    #print "sourceHost:", sourceHost    
+    
+    #print "targetHost:", targetHost
+    #print "reservedLinkResources: ", reservedLinkResources
+    
+    #reservedLinkResources:  [{'Host': u'compute-001', 'Type': u'Machine', 
+    # 'ID': u'ac244a32-2913-49a4-bbb2-07a627bdb101'}, {'IP': u'192.168.13.42', 
+    #'Host': u'web-wikipedia', 'Type': u'Web-Wikipedia', 'ID': u'web-wikipedia'}]
+    
 
     #
-    # Iterate @machineList and find the IDs.
+    # Iterate @reservedLinkResources and find the IDs.
     # FIXME we assume that there is a 1-1 match between hosts and containers.
     # TODO scenario when two containers are on the same host.
-    # json format of each machine element in @machineList:
+    # json format of each machine element in @reservedLinkResources:
     #   {"Host" : compute-host, "ID": ID of container}
     #
-    for machine in machineList:
-        if machine["Host"] == sourceHost :
-            sourceID = machine["ID"]
-        if machine["Host"] == targetHost :
-            targetID = machine["ID"]
-        if sourceID is not None and targetID is not None :
+    
+    sourceIP = None
+    targetIP = None
+    sourceType = None
+    targetType = None
+    for resource in reservedLinkResources:
+        if resource["Host"] == sourceHost :
+            sourcetype = resource["Type"]
+            if sourceType == "Machine":
+                sourceIP = get_private_IP_from_ID(resource["ID"])
+            else:
+                sourceIP = resource["IP"]    
+        if resource["Host"] == targetHost :
+            targetType = resource["Type"]        
+            if targetType == "Machine":
+                targetIP = get_private_IP_from_ID(resource["ID"])
+            else:
+                targetIP = resource["IP"]    
+
+        if sourceIP is not None and sourceIP is not None :
             break
 
-    if sourceID is None or targetID is None :
-        raise Exception("Could not find IDs of containers in hosts " + sourceHost + ", " + targetHost)
-
-    #
-    # Translate IDs to Private IPs
-    # Function returns False on error
-    #
-    sourceIP = get_private_IP_from_ID( sourceID )
-    targetIP = get_private_IP_from_ID( targetID )
-
     if not sourceIP or not targetIP :
-        raise Exception("Could not find Private IPs for containers " + sourceID + ", " + targetID)
+        raise Exception("Could not find Private IPs for resources " + sourceHost + ", " + targetHost)
 
     #
     # Install rules on both containers
     #
-    traffic_rules_propagate( sourceIP, targetIP, [bandwidth] )
-    traffic_rules_propagate( targetIP, sourceIP, [bandwidth] )
+    if sourcetype == "Machine":
+       traffic_rules_propagate( sourceIP, targetIP, [bandwidth] )
+    
+    if targetType == "Machine":
+       traffic_rules_propagate( targetIP, sourceIP, [bandwidth] )
 
 
 #
@@ -614,7 +632,7 @@ def traffic_rules_propagate( srcIP, dstIP, bandwidthList ):
     # Read it; replace the placeholders.
     #
     tcBaseFile = "tcinstall-base.sh"
-    file_ = open(tcBaseFile,'r')
+    file_ = open(irm_net_path + "/../" + tcBaseFile,'r')
 
     tcBaseData = file_.read()
     file_.close()

@@ -1,4 +1,5 @@
 [
+  { "name": "web-",      "cluster": "rennes" },
   { "name": "paranoia",  "cluster": "rennes" },
   { "name": "parasilo",  "cluster": "rennes" },
   { "name": "paravance", "cluster": "rennes" },
