@@ -25,7 +25,7 @@ logger = logging.getLogger("Rotating Log")
 class NETReservationsView(ReservationsView):
 
     # we rank each type according to the order in which we create it
-    SupportedTypes = { "Machine": 2, "PublicIP": 3, "Subnet": 1, "Link": 4 }
+    SupportedTypes = { "Machine": 2, "PublicIP": 3, "Subnet": 1, "Link": 5, "Web": 4 }
     LinkReservations = {}
 
     ###############################################  create reservation ############ 
@@ -42,7 +42,7 @@ class NETReservationsView(ReservationsView):
 
         # first check that we can support all allocation requests
         for req in alloc_req:
-           if req["Type"] not in NETReservationsView.SupportedTypes:
+           if (req["Type"].split("-")[0] not in NETReservationsView.SupportedTypes):
               raise Exception("Do not support allocation request type: %s!" % req["Type"])
 
         # add original order, so that we do not lose it when we sort
@@ -52,16 +52,16 @@ class NETReservationsView(ReservationsView):
            n = n + 1
 
         # sort the allocation requests
-        salloc_req = sorted(alloc_req, key=lambda x: NETReservationsView.SupportedTypes[x["Type"]])
-        #logger.info("salloc_req=%s", json.dumps(salloc_req))
-
+        salloc_req = sorted(alloc_req, key=lambda x: NETReservationsView.SupportedTypes[x["Type"].split("-")[0]])
+        
+        #print "salloc_req=", json.dumps(salloc_req)
         reservations=[]
         rollback = False
         error_msg = ""
 
-        # List of reserved resources, of type "Machine";
+        # List of reserved resources, of type "Machine" and "Web-*";
         # The reservation IDs are needed during bandwidth allocation
-        reservedMachines=[]
+        reservedLinkResources=[]
 
         try:
            for req in salloc_req:
@@ -78,14 +78,14 @@ class NETReservationsView(ReservationsView):
                  req["Attributes"]["VM"] = groups[req["Attributes"]["VM"]]["resID"]  
 
               #
-              # Relevant for Gabriel's CRS algorithm
+              # Relevant for Damian's CRS algorithm
               #
               if req["Type"] == "Link" and "Attributes" in req and "Source" in req["Attributes"] and \
                      req["Attributes"]["Source"] in groups:
                  req["Attributes"]["Source"] = groups[req["Attributes"]["Source"]]["ID"]
 
               #
-              # Relevant for Gabriel's CRS algorithm
+              # Relevant for Damian's CRS algorithm
               #
               if req["Type"] == "Link" and "Attributes" in req and "Target" in req["Attributes"] and \
                      req["Attributes"]["Target"] in groups:
@@ -102,8 +102,10 @@ class NETReservationsView(ReservationsView):
                  topology = NETResourcesView.Topology
                  id = link_create_reservation(topology["links"], topology["paths"], topology["link_list"],\
                                               NETReservationsView.LinkReservations, req,\
-                                              reservedMachines)
+                                              reservedLinkResources)
                  ret = { "result": { "ReservationID": [id] }} 
+              elif req["Type"].split("-")[0] == "Web":
+                 ret = { "result": { "ReservationID": [req["ID"]] }}
               else:
                  raise Exception("internal error: type %s not supported!" % req["Type"])
 
@@ -121,17 +123,22 @@ class NETReservationsView(ReservationsView):
                     reservations.append({ "addr": manager["Address"], "port": manager["Port"], \
                                           "name": manager["Name"], "ManagerID": manager["ManagerID"], \
                                           "iRes": rID, "pos": req["pos"], "type": req["Type"] })
-                    #
-                    # Add reserved machines to @reservedMachines list.
-                    # Simplified list to be passed to @net_links.link_create_reservation( ... )
-                    #
-                    if req["Type"] == "Machine" :
-                        reservedMachines.append({ "ID": rID[0], "Host": req["ID"]})
-
                  else:                                       
                      reservations.append({ "addr": None, "port": None, \
                                           "name": "IRM-NET", "ManagerID": None, \
                                           "iRes": rID, "pos": req["pos"], "type": req["Type"] })                                     
+                                          
+                 # Add reserved machines/webs to @reservedLinkResources list.
+                 # Simplified list to be passed to @net_links.link_create_reservation( ... )
+                 #
+                 if req["Type"] == "Machine":
+                     reservedLinkResources.append({ "Type": req["Type"], "ID": rID[0], "Host": req["ID"]})
+                 elif req["Type"].split("-")[0] == "Web":    
+                     reservedLinkResources.append({ "Type": req["Type"], "ID": rID[0], 
+                                                    "Host": req["ID"], 
+                                                    "IP": 
+                                                    NETResourcesView.Webs[
+                                                    req["ID"]]["Attributes"]["IP"]})
               else:
                  raise Exception("internal error: %s" % str(ret))
 
@@ -177,6 +184,8 @@ class NETReservationsView(ReservationsView):
              elif alloc["type"] == "Link": 
                 res = link_check_reservation(NETReservationsView.LinkReservations, alloc["iRes"])
                 ret = { "result": res }
+             elif alloc["type"].split("-")[0] == "Web":               
+                ret = { "result": { "Instances": { alloc["type"].split("-")[1]: { "Ready": "true", "Address": [ NETResourcesView.Webs[alloc["iRes"][0]]["Attributes"]["IP"]]}}}}  
              if "result" not in ret:
                 raise Exception("Error in checking reservation: ", str(ret))
              
