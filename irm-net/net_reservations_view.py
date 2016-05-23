@@ -30,7 +30,7 @@ class NETReservationsView(ReservationsView):
 
     ###############################################  create reservation ############ 
     def _create_reservation(self, scheduler, alloc_req, alloc_constraints, monitor):
-        logger.info("Called")
+        logger.info("Called; allocations: " + json.dumps(alloc_req) + ", constraints: " + json.dumps(alloc_constraints))
 
         NETManagersView.expect_ready_manager()
 
@@ -96,10 +96,14 @@ class NETReservationsView(ReservationsView):
               # TODO Links need their manager. IRM-Link?
               #
               if manager != None:              
+	         logger.info("REQ=%s", json.dumps(req,indent=4))
                  ret = post({"Allocation": [req], "Monitor": monitor}, "createReservation", \
                             manager["Port"], manager["Address"])
+	         logger.info("RET=%s", json.dumps(ret,indent=4))
               elif req["Type"] == "Link":
                  topology = NETResourcesView.Topology
+		 logger.info("req: " + json.dumps(req))
+		 logger.info("reservedLinkResources: " + json.dumps(reservedLinkResources))
                  id = link_create_reservation(topology["links"], topology["paths"], topology["link_list"],\
                                               NETReservationsView.LinkReservations, req,\
                                               reservedLinkResources)
@@ -145,7 +149,7 @@ class NETReservationsView(ReservationsView):
               #logger.info("ResID: %s Request: %s", rID, json.dumps(req))
 
         except Exception as e:
-           print "rolling back! " + str(e)
+           logger.info("rolling back! %s", str(e))
            error_msg = str(e)
            rollback = True
         
@@ -157,7 +161,8 @@ class NETReservationsView(ReservationsView):
               print "backtracking...%s" % str(iResID)
               data = {"ReservationID": iResID["iRes"]}
               try:                
-                hresman.utils.delete_(data, 'releaseReservation', iResID["port"], iResID["addr"])
+		pass
+                #hresman.utils.delete_(data, 'releaseReservation', iResID["port"], iResID["addr"])
               except:
                 pass  
            raise Exception("cannot make reservation! (rollbacking): %s" % error_msg)  

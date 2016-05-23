@@ -442,17 +442,17 @@ def link_calc_capacity(resource, allocation, release):
     return {"Resource": {"Type": "Link", "Attributes": { "Source": source, "Target": target, "Bandwidth": bandwidth } }} 
 
 def link_create_reservation (links, paths, link_list, link_res, req, reservedLinkResources):
-    #logger.info("Called")
+    logger.info("Called")
 
     #logger.info("paths=%s", json.dumps(paths))
     #logger.info("links=%s", json.dumps(links))
     #logger.info("link_list=%s", json.dumps(link_list))
     #logger.info("link_res=%s", json.dumps(link_res))
-    #logger.info("req=%s", json.dumps(req))
+    logger.info("req=%s", json.dumps(req))
     
     # find the ID; it is either provided (Damian's CRS, or it needs to be found)
     
-    print "req===>", req
+    #print "req===>", req
     
     pathID = None
     if 'ID' not in req:
@@ -559,11 +559,8 @@ def link_check_reservation (link_res, resIDs):
 #
 def install_traffic_rules( sourceHost, targetHost, bandwidth, reservedLinkResources ):
 
-    
-    #print "sourceHost:", sourceHost    
-    
-    #print "targetHost:", targetHost
-    #print "reservedLinkResources: ", reservedLinkResources
+    logger.info("Called")
+    logger.info("sourceHost: " + sourceHost + " targetHost: " + targetHost + " bandwidth: " + json.dumps(bandwidth) + " links: " + json.dumps(reservedLinkResources))
     
     #reservedLinkResources:  [{'Host': u'compute-001', 'Type': u'Machine', 
     # 'ID': u'ac244a32-2913-49a4-bbb2-07a627bdb101'}, {'IP': u'192.168.13.42', 
@@ -583,24 +580,37 @@ def install_traffic_rules( sourceHost, targetHost, bandwidth, reservedLinkResour
     sourceType = None
     targetType = None
     for resource in reservedLinkResources:
+	logger.info("Check: " + json.dumps(resource))
         if resource["Host"] == sourceHost :
-            sourcetype = resource["Type"]
+	    logger.info("that's the source")
+            sourceType = resource["Type"]
+	    logger.info("my source type is: " + sourceType)
             if sourceType == "Machine":
+	        logger.info("getting_IP")
                 sourceIP = get_private_IP_from_ID(resource["ID"])
             else:
+	        logger.info("a public resource?")
                 sourceIP = resource["IP"]    
         if resource["Host"] == targetHost :
+	    logger.info("that's the target")
             targetType = resource["Type"]        
+	    logger.info("my target type is: " + targetType)
             if targetType == "Machine":
+	        logger.info("before")
                 targetIP = get_private_IP_from_ID(resource["ID"])
+	        logger.info("after")
             else:
+	        logger.info("a resource?")
                 targetIP = resource["IP"]    
 
-        if sourceIP is not None and sourceIP is not None :
+        if sourceIP is not None and targetIP is not None :
+	    logger.info("hmm")
             break
 
+    logger.info("Check #1")
     if not sourceIP or not targetIP :
         raise Exception("Could not find Private IPs for resources " + sourceHost + ", " + targetHost)
+    logger.info("Check #2")
 
     #
     # Install rules on both containers
@@ -608,8 +618,10 @@ def install_traffic_rules( sourceHost, targetHost, bandwidth, reservedLinkResour
     if sourcetype == "Machine":
        traffic_rules_propagate( sourceIP, targetIP, [bandwidth] )
     
+    logger.info("Check #3")
     if targetType == "Machine":
        traffic_rules_propagate( targetIP, sourceIP, [bandwidth] )
+    logger.info("Check #4")
 
 
 #
