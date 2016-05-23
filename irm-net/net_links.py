@@ -452,8 +452,6 @@ def link_create_reservation (links, paths, link_list, link_res, req, reservedLin
     
     # find the ID; it is either provided (Damian's CRS, or it needs to be found)
     
-    print "req===>", req
-    
     pathID = None
     if 'ID' not in req:
        if ('Source' not in req["Attributes"]) or ('Target' not in req["Attributes"]):
@@ -561,7 +559,6 @@ def install_traffic_rules( sourceHost, targetHost, bandwidth, reservedLinkResour
 
     
     #print "sourceHost:", sourceHost    
-    
     #print "targetHost:", targetHost
     #print "reservedLinkResources: ", reservedLinkResources
     
@@ -578,16 +575,17 @@ def install_traffic_rules( sourceHost, targetHost, bandwidth, reservedLinkResour
     #   {"Host" : compute-host, "ID": ID of container}
     #
     
+    
     sourceIP = None
     targetIP = None
     sourceType = None
     targetType = None
     for resource in reservedLinkResources:
         if resource["Host"] == sourceHost :
-            sourcetype = resource["Type"]
+            sourceType = resource["Type"]
             if sourceType == "Machine":
                 sourceIP = get_private_IP_from_ID(resource["ID"])
-            else:
+              else:
                 sourceIP = resource["IP"]    
         if resource["Host"] == targetHost :
             targetType = resource["Type"]        
@@ -596,7 +594,7 @@ def install_traffic_rules( sourceHost, targetHost, bandwidth, reservedLinkResour
             else:
                 targetIP = resource["IP"]    
 
-        if sourceIP is not None and sourceIP is not None :
+        if sourceIP is not None and targetIP is not None :
             break
 
     if not sourceIP or not targetIP :
@@ -605,7 +603,7 @@ def install_traffic_rules( sourceHost, targetHost, bandwidth, reservedLinkResour
     #
     # Install rules on both containers
     #
-    if sourcetype == "Machine":
+    if sourceType == "Machine":
        traffic_rules_propagate( sourceIP, targetIP, [bandwidth] )
     
     if targetType == "Machine":
