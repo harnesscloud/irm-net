@@ -585,7 +585,7 @@ def install_traffic_rules( sourceHost, targetHost, bandwidth, reservedLinkResour
             sourceType = resource["Type"]
             if sourceType == "Machine":
                 sourceIP = get_private_IP_from_ID(resource["ID"])
-              else:
+            else:
                 sourceIP = resource["IP"]    
         if resource["Host"] == targetHost :
             targetType = resource["Type"]        
