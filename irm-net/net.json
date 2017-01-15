@@ -1,6 +1,7 @@
 [
   { "name": "web-",      "cluster": "rennes" },
   { "name": "paranoia",  "cluster": "rennes" },
+  { "name": "parapide",  "cluster": "rennes" },
   { "name": "parasilo",  "cluster": "rennes" },
   { "name": "paravance", "cluster": "rennes" },
   { "name": "parapluie", "cluster": "rennes" },
@@ -12,10 +13,10 @@
   { "name": "orion",     "cluster": "lyon" },
   { "name": "taurus",    "cluster": "lyon" },
   { "name": "sagittaire","cluster": "lyon" },
-  { "name": "rennes", "latency": 0.5, "bandwidth": 1000 },
+  { "name": "rennes", "latency": 0.05, "bandwidth": 1000 },
   { "name": "nantes", "latency": 0.1, "bandwidth": 1000 },
   { "name": "nancy",  "latency": 0.1, "bandwidth": 1000 },
   { "name": "lyon",   "latency": 0.1, "bandwidth": 1000 },
-  { "name": "DC", "latency": 10, "bandwidth": 200 },
+  { "name": "DC", "latency": 0.325, "bandwidth": 200 },
   { "name": "",  "cluster": "my-cluster", "latency": 20, "bandwidth": 400 }
 ]
