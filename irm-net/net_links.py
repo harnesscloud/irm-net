@@ -445,7 +445,7 @@ def link_calc_capacity(resource, allocation, release):
 ################################## UTI Stuff - End ####################################
 ################################## API Stuff - Start ##################################
 
-def link_create_reservation (links, paths, link_list, link_res, req, reservedLinkResources):
+def link_create_reservation (links, paths, link_list, link_res, req, reservedMachineResources):
     #logger.info("Called")
 
     #logger.info("paths=%s", json.dumps(paths))
@@ -513,7 +513,7 @@ def link_create_reservation (links, paths, link_list, link_res, req, reservedLin
     calculate_attribs(paths, link_list, links)
     install_traffic_rules( paths[pathID]["Attributes"]["Source"], \
             paths[pathID]["Attributes"]["Target"],
-            bandwidth, reservedLinkResources )
+            bandwidth, reservedMachineResources )
     
     return resID
     
@@ -559,23 +559,25 @@ def link_check_reservation (link_res, resIDs):
 # TODO close processes
 # http://kendriu.com/how-to-use-pipes-in-python-subprocesspopen-objects
 #
-def install_traffic_rules( sourceHost, targetHost, bandwidth, reservedLinkResources ):
+# @param reservedMachineResources List of reserved machines resources.
+#
+def install_traffic_rules( sourceHost, targetHost, bandwidth, reservedMachineResources ):
 
     
     #print "sourceHost:", sourceHost    
     #print "targetHost:", targetHost
-    #print "reservedLinkResources: ", reservedLinkResources
+    #print "reservedMachineResources: ", reservedMachineResources
     
-    #reservedLinkResources:  [{'Host': u'compute-001', 'Type': u'Machine', 
+    #reservedMachineResources:  [{'Host': u'compute-001', 'Type': u'Machine',
     # 'ID': u'ac244a32-2913-49a4-bbb2-07a627bdb101'}, {'IP': u'192.168.13.42', 
     #'Host': u'web-wikipedia', 'Type': u'Web-Wikipedia', 'ID': u'web-wikipedia'}]
     
 
     #
-    # Iterate @reservedLinkResources and find the IDs.
+    # Iterate @reservedMachineResources and find the IDs.
     # FIXME we assume that there is a 1-1 match between hosts and containers.
     # TODO scenario when two containers are on the same host.
-    # json format of each machine element in @reservedLinkResources:
+    # json format of each machine element in @reservedMachineResources:
     #   {"Host" : compute-host, "ID": ID of container}
     #
     
@@ -584,7 +586,7 @@ def install_traffic_rules( sourceHost, targetHost, bandwidth, reservedLinkResour
     targetIP = None
     sourceType = None
     targetType = None
-    for resource in reservedLinkResources:
+    for resource in reservedMachineResources:
         if resource["Host"] == sourceHost :
             sourceType = resource["Type"]
             if sourceType == "Machine":
