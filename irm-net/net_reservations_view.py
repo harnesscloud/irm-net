@@ -154,6 +154,11 @@ class NETReservationsView(ReservationsView):
            ## end-loop: 'for req in salloc_req:'
            ##
 
+           # FairCloud: add the tenant's machines
+           faircloud_add_tenant(topology["links"], topology["paths"], topology["link_list"],\
+                   NETReservationsView.LinkReservations, resID,\
+                   reservedLinkResources)
+
         except Exception as e:
            print "rolling back! " + str(e)
            error_msg = str(e)
@@ -218,6 +223,12 @@ class NETReservationsView(ReservationsView):
           # reverse the order in which they were created
           data = ReservationsView.reservations[reservation][::-1] 
           del ReservationsView.reservations[reservation]  
+
+          # Delete the tenant from the FairCloud database
+          resID = reservation
+          faircloud_remove_tenant(topology["links"], topology["paths"], topology["link_list"],\
+                  NETReservationsView.LinkReservations, resID)
+
           for alloc in data:  
              if alloc["addr"] != None:
                 ret = hresman.utils.delete_( { "ReservationID" : alloc["iRes"] }, "releaseReservation", alloc["port"], alloc["addr"])

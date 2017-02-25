@@ -445,6 +445,12 @@ def link_calc_capacity(resource, allocation, release):
 ################################## UTI Stuff - End ####################################
 ################################## API Stuff - Start ##################################
 
+def faircloud_add_tenant (links, paths, link_list, link_res, tenantID, reservedMachineResources):
+    return 0
+
+def faircloud_remove_tenant (links, paths, link_list, link_res, tenantID):
+    return 0
+
 def link_create_reservation (links, paths, link_list, link_res, req, reservedMachineResources):
     #logger.info("Called")
 
