@@ -59,7 +59,7 @@ def init():
 
 
 ################################## CLI Stuff - End ####################################
-################################## API Stuff - Start ##################################
+################################## UTI Stuff - Start ##################################
 
 def load_spec_nodes(mchn):
    curr = os.path.dirname(os.path.abspath(__file__))
@@ -440,6 +440,10 @@ def link_calc_capacity(resource, allocation, release):
           return {}
     
     return {"Resource": {"Type": "Link", "Attributes": { "Source": source, "Target": target, "Bandwidth": bandwidth } }} 
+
+
+################################## UTI Stuff - End ####################################
+################################## API Stuff - Start ##################################
 
 def link_create_reservation (links, paths, link_list, link_res, req, reservedLinkResources):
     #logger.info("Called")
