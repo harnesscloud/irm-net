@@ -63,6 +63,12 @@ class NETReservationsView(ReservationsView):
         # The reservation IDs are needed during bandwidth allocation
         reservedLinkResources=[]
 
+        # Generate Reservation ID
+        # It won't be used unless we encounter no rollbacks.
+        resID = uuid.uuid1()
+
+        # Start allocating resources
+        # First Subnets, then Machines, etc.
         try:
            for req in salloc_req:
               #
@@ -144,13 +150,16 @@ class NETReservationsView(ReservationsView):
 
               #logger.info("ResID: %s Request: %s", rID, json.dumps(req))
 
+           ##
+           ## end-loop: 'for req in salloc_req:'
+           ##
+
         except Exception as e:
            print "rolling back! " + str(e)
            error_msg = str(e)
            rollback = True
         
         if not rollback:
-           resID = uuid.uuid1()
            ReservationsView.reservations[str(resID)] = reservations
         else:
            for iResID in reservations[::-1]:
