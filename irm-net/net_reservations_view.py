@@ -155,6 +155,7 @@ class NETReservationsView(ReservationsView):
            ##
 
            # FairCloud: add the tenant's machines
+           topology = NETResourcesView.Topology
            faircloud_add_tenant(topology["links"], topology["paths"], topology["link_list"],\
                    NETReservationsView.LinkReservations, resID,\
                    reservedLinkResources)
