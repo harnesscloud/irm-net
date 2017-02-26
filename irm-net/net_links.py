@@ -446,10 +446,20 @@ def link_calc_capacity(resource, allocation, release):
 ################################## API Stuff - Start ##################################
 
 def faircloud_add_tenant (links, paths, link_list, link_res, tenantID, reservedMachineResources):
+
+    # Add tenant to database
+    add_tenant( tenantID, reservedMachineResources )
+
     return 0
 
+
 def faircloud_remove_tenant (links, paths, link_list, link_res, tenantID):
+
+    # Find tenant in database and remove
+    remove_tenant( tenantID )
+
     return 0
+
 
 def link_create_reservation (links, paths, link_list, link_res, req, reservedMachineResources):
     #logger.info("Called")
@@ -560,6 +570,48 @@ def link_check_reservation (link_res, resIDs):
 
 ################################## API Stuff - End ####################################
 ################################## Lib Stuff - Start ##################################
+
+tenantTable=[]
+
+#
+# Add tenant in @tenantTable
+#
+def add_tenant( tenantID, resourceList ):
+
+    # Craft 'tenant' json:
+    # - ID (reservation ID)
+    # - Resource list
+    tenant = {}
+    tenant["ID"] = tenantID
+    tenant["Resources"] = resourceList
+
+    # Append to table
+    tenantTable.append( tenant )
+    return 0
+
+#
+# Remove tenant from @tenantTable
+#
+def delete_tenant( tenantID ):
+
+    tenant_to_delete = None
+
+    # Find the tenantID in the table
+    for tenant in tenantTable:
+        if tenant["ID"] == tenantID:
+            tenant_to_delete = tenant
+            break
+
+    # Sanity check:
+    # has the entry been found?
+    if tenant_to_delete == None:
+        raise Exception("Tenant (reservation) %s not found" % tenantID)
+
+    # Remove the tenant from the table
+    tenantTable.remove(tenant_to_delete)
+
+    return 0
+
 
 #
 # TODO close processes
