@@ -157,7 +157,7 @@ class NETReservationsView(ReservationsView):
            # FairCloud: add the tenant's machines
            topology = NETResourcesView.Topology
            faircloud_add_tenant(topology["links"], topology["paths"], topology["link_list"],\
-                   NETReservationsView.LinkReservations, resID,\
+                   NETReservationsView.LinkReservations, str(resID),\
                    reservedLinkResources)
 
         except Exception as e:
@@ -228,7 +228,7 @@ class NETReservationsView(ReservationsView):
           # Delete the tenant from the FairCloud database
           resID = reservation
           faircloud_remove_tenant(topology["links"], topology["paths"], topology["link_list"],\
-                  NETReservationsView.LinkReservations, resID)
+                  NETReservationsView.LinkReservations, str(resID))
 
           for alloc in data:  
              if alloc["addr"] != None:
