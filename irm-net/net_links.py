@@ -656,7 +656,7 @@ def delete_tenant( tenantID ):
 def init_link_active( links ):
 
     for linkID in links:
-        link[ linkID ]["Attributes"]["Active"] = {}
+        links[ linkID ]["Attributes"]["Active"] = {}
 
     return 0
 
