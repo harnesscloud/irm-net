@@ -580,22 +580,14 @@ def link_check_reservation (link_res, resIDs):
 # FairCloud "global" internal variables
 # @tenantTable  Table with tenants and associated machines
 #
-tenantTable=[]
+tenantTable={}
 
 #
 # Add tenant in @tenantTable
 #
 def add_tenant( tenantID, resourceList ):
 
-    # Craft 'tenant' json:
-    # - ID (reservation ID)
-    # - Resource list
-    tenant = {}
-    tenant["ID"] = tenantID
-    tenant["Resources"] = resourceList
-
-    # Append to table
-    tenantTable.append( tenant )
+    tenant[ tenantID ] = resourceList
     return 0
 
 #
@@ -603,21 +595,10 @@ def add_tenant( tenantID, resourceList ):
 #
 def delete_tenant( tenantID ):
 
-    tenant_to_delete = None
-
-    # Find the tenantID in the table
-    for tenant in tenantTable:
-        if tenant["ID"] == tenantID:
-            tenant_to_delete = tenant
-            break
-
-    # Sanity check:
-    # has the entry been found?
-    if tenant_to_delete == None:
-        raise Exception("Tenant (reservation) %s not found" % tenantID)
-
-    # Remove the tenant from the table
-    tenantTable.remove(tenant_to_delete)
+    if tenantID in tenantTable:
+        del tenantTable[ tenantID ]
+    else:
+        raise Exception("Tenant not found" % tenantID)
 
     return 0
 
