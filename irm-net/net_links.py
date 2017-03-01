@@ -202,7 +202,12 @@ def gen_topology(spec_nodes):
     process_spec(links, nodes, "root", spec_nodes, 0, [0], context)
     #print "LINKS=", json.dumps(links, indent=4) 
     #print "NODES=", json.dumps(nodes, indent=4)
-      
+
+    #
+    # FairCloud: initialize link weights with linkIDs
+    #
+    init_link_weights( links )
+
     return links, nodes
     
     
@@ -568,9 +573,13 @@ def link_check_reservation (link_res, resIDs):
     return { "Instances": result }
 
 
-################################## API Stuff - End ####################################
-################################## Lib Stuff - Start ##################################
+################################## API  Stuff - End ####################################
+################################## Fair Stuff - Start ##################################
 
+#
+# FairCloud "global" internal variables
+# @tenantTable  Table with tenants and associated machines
+#
 tenantTable=[]
 
 #
@@ -612,6 +621,34 @@ def delete_tenant( tenantID ):
 
     return 0
 
+
+#
+# Initialize link weights
+# Create empty jsons
+#
+def init_link_weights( links ):
+
+    for linkID in links:
+        link[ linkID ]["Attributes"]["Weights"] = {}
+
+    return 0
+
+#
+#
+#
+def calc_link_weights( links ):
+
+    #
+    # Delete all previous weights
+    #
+    init_link_weights( links )
+
+    return 0
+
+
+
+################################## Fair Stuff - End ####################################
+################################## Lib Stuff  - Start ##################################
 
 #
 # TODO close processes
