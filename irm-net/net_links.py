@@ -592,7 +592,7 @@ def add_tenant( tenantID, paths, resourceList ):
     #
     # Initialize list of active pathIDs
     #
-    tenant[ tenantID ] = []
+    tenantTable[ tenantID ] = []
 
     #
     # Generate all combinations from the
@@ -628,7 +628,7 @@ def add_tenant( tenantID, paths, resourceList ):
         #
         # Add pathID to tenant array
         #
-        tenant[ tenantID ].append( pathID )
+        tenantTable[ tenantID ].append( pathID )
 
     return 0
 
