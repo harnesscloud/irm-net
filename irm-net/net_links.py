@@ -10,6 +10,8 @@ import sys
 import re           # grep IPs using regex
 import paramiko     # ssh remote commands
 
+from itertools import combinations  # create combinations from list
+
 # Floating IP of conpaas-director
 FIP_CONPAAS_DIRECTOR = None
 
@@ -206,7 +208,7 @@ def gen_topology(spec_nodes):
     #
     # FairCloud: initialize link weights with linkIDs
     #
-    init_link_weights( links )
+    init_link_active( links )
 
     return links, nodes
     
@@ -453,7 +455,7 @@ def link_calc_capacity(resource, allocation, release):
 def faircloud_add_tenant (links, paths, link_list, link_res, tenantID, reservedMachineResources):
 
     # Add tenant to database
-    add_tenant( tenantID, reservedMachineResources )
+    add_tenant( tenantID, paths, reservedMachineResources )
 
     return 0
 
@@ -585,10 +587,51 @@ tenantTable={}
 #
 # Add tenant in @tenantTable
 #
-def add_tenant( tenantID, resourceList ):
+def add_tenant( tenantID, paths, resourceList ):
 
-    tenant[ tenantID ] = resourceList
+    #
+    # Initialize list of active pathIDs
+    #
+    tenant[ tenantID ] = []
+
+    #
+    # Generate all combinations from the
+    # reserved machines
+    #
+    combinations = list( combinations(resourceList, 2) )
+
+    # Iterate all pairs
+    for pair in combinations:
+
+        source = pair[0]["Host"]
+        target = pair[1]["Host"]
+
+        #
+        # Iterate all paths to find the corresponding pathID
+        #
+        pathID = None
+        for p in paths:
+
+            if (paths[p]["Attributes"]["Source"] == source) and \
+                    (paths[p]["Attributes"]["Target"] == target):
+                    pathID = p
+                    break
+
+            elif (paths[p]["Attributes"]["Source"] == target) and \
+                    (paths[p]["Attributes"]["Target"] == source):
+                    pathID = p
+                    break
+
+        if pathID == None:
+            raise Exception("Cannot find a path with source: %s and target: %s" % (source,target))
+
+        #
+        # Add pathID to tenant array
+        #
+        tenant[ tenantID ].append( pathID )
+
     return 0
+
 
 #
 # Remove tenant from @tenantTable
@@ -607,10 +650,13 @@ def delete_tenant( tenantID ):
 # Initialize link weights
 # Create empty jsons
 #
-def init_link_weights( links ):
+# link[ linkID ]["Attributes"]["Active"] is a json:
+# { tenantID : [pathID1, pathID2, ...] }
+#
+def init_link_active( links ):
 
     for linkID in links:
-        link[ linkID ]["Attributes"]["Weights"] = {}
+        link[ linkID ]["Attributes"]["Active"] = {}
 
     return 0
 
@@ -622,7 +668,18 @@ def calc_link_weights( links ):
     #
     # Delete all previous weights
     #
-    init_link_weights( links )
+    init_link_active( links )
+
+    #
+    # Iterate all tenants
+    #
+    for tenantID in tenantTable:
+
+        #
+        # Iterate all machines from that tenant
+        # to generate the paths
+        #
+        for machine in tenantTable[ tenantID ]:
 
     return 0
 
