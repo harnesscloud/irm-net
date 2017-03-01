@@ -10,7 +10,7 @@ import sys
 import re           # grep IPs using regex
 import paramiko     # ssh remote commands
 
-from itertools import combinations  # create combinations from list
+import itertools    # create combinations from list
 
 # Floating IP of conpaas-director
 FIP_CONPAAS_DIRECTOR = None
@@ -597,11 +597,13 @@ def add_tenant( tenantID, paths, resourceList ):
     #
     # Generate all combinations from the
     # reserved machines
+    # NOTE: if importing just "combinations" from itertools,
+    # do not give the same name to 'combinations'
     #
-    combinations = list( combinations(resourceList, 2) )
+    combinationList = list( itertools.combinations(resourceList, 2) )
 
     # Iterate all pairs
-    for pair in combinations:
+    for pair in combinationList:
 
         source = pair[0]["Host"]
         target = pair[1]["Host"]
