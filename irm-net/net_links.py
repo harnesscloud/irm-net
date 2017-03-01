@@ -670,17 +670,6 @@ def calc_link_weights( links ):
     #
     init_link_active( links )
 
-    #
-    # Iterate all tenants
-    #
-    for tenantID in tenantTable:
-
-        #
-        # Iterate all machines from that tenant
-        # to generate the paths
-        #
-        for machine in tenantTable[ tenantID ]:
-
     return 0
 
 
