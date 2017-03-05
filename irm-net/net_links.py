@@ -456,6 +456,7 @@ def faircloud_add_tenant (links, paths, link_list, link_res, tenantID, reservedM
 
     # Add tenant to database
     add_tenant( tenantID, paths, reservedMachineResources )
+    update_link_tenants( links, link_list )
 
     return 0
 
@@ -665,12 +666,39 @@ def init_link_active( links ):
 #
 #
 #
-def calc_link_weights( links ):
+def update_link_tenants( links, link_list ):
 
     #
     # Delete all previous weights
     #
     init_link_active( links )
+
+    #
+    # Iterate all tenants
+    #
+    for tenantID in tenantTable:
+
+        #
+        # Iterate all tenant paths
+        #
+        for pathID in tenantTable[ tenantID ]:
+
+            #
+            # Iterate all links in that path
+            #
+            for linkID in link_list[ pathID ]:
+
+                #
+                # Initialize list & create key, if not already set.
+                # Each 'tenantID' key hosts a list of pathIDs.
+                #
+                if tenantID not in links[ linkID ]["Attributes"]["Active"]:
+                    links[ linkID ]["Attributes"]["Active"][ tenantID ] = []
+
+                #
+                # Update tenantID & pathID
+                #
+                links[ linkID ]["Attributes"]["Active"][ tenantID ].append( pathID )
 
     return 0
 
