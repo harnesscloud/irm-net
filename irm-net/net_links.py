@@ -704,6 +704,30 @@ def update_link_tenants( links, link_list ):
     return 0
 
 
+#
+# Calculate weights
+#
+def calc_link_weights( links, paths ):
+
+    #
+    # Iterate all links
+    #
+    for linkID in links:
+
+        #
+        # Initialize weight json
+        #
+        links[ linkID ]["Attributes"]["Weights"] = {}
+
+        #
+        # Iterate all tenants on that link
+        #
+        for tenantID in links[ linkID ]["Attributes"]["Active"]:
+
+            print
+
+    return 0
+
 
 ################################## Fair Stuff - End ####################################
 ################################## Lib Stuff  - Start ##################################
