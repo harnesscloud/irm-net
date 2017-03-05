@@ -465,6 +465,7 @@ def faircloud_remove_tenant (links, paths, link_list, link_res, tenantID):
 
     # Find tenant in database and remove
     remove_tenant( tenantID )
+    update_link_tenants( links, link_list )
 
     return 0
 
