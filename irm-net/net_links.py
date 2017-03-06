@@ -457,6 +457,7 @@ def faircloud_add_tenant (links, paths, link_list, link_res, tenantID, reservedM
     # Add tenant to database
     add_tenant( tenantID, paths, reservedMachineResources )
     update_link_tenants( links, link_list )
+    calc_link_weights( links, paths )
 
     return 0
 
