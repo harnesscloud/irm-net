@@ -724,7 +724,56 @@ def calc_link_weights( links, paths ):
         #
         for tenantID in links[ linkID ]["Attributes"]["Active"]:
 
-            print
+            #
+            # Iterate all paths of that tenant; first pass
+            # Find out how many machines each machine is talking with
+            #
+            connections = {}
+
+            for pathID in links[ linkID ]["Attributes"]["Active"][ tenantID ]:
+
+                #
+                # Get source/target
+                #
+                machineList = []
+                machineList.append( paths[ pathID ]["Attributes"]["Source"] )
+                machineList.append( paths[ pathID ]["Attributes"]["Target"] )
+
+                for machine in machineList:
+                    #
+                    # Initialize counters
+                    #
+                    if machine not in connections:
+                        connections[ machine ] = 0
+
+                    #
+                    # Increase counter:
+                    # source communicates with target and vice-versa
+                    #
+                    connections[ machine ] = connections[ machine ] + 1
+
+            #
+            # Iterate all paths of that tenant; second pass
+            # Calculate the actual weights
+            #
+            for pathID in links[ linkID ]["Attributes"]["Active"][ tenantID ]:
+
+                #
+                # Get source/target
+                #
+                source = paths[ pathID ]["Attributes"]["Source"]
+                target = paths[ pathID ]["Attributes"]["Target"]
+
+                #
+                # Calculate weight; FairCloud-L model. (link)
+                #
+                weight = 1.0 / connections[source] + 1.0 / connections[target]
+
+                #
+                # Save to json in 'Attributes'
+                #
+                #paths[ pathID ]["Attributes"]["Target"]
+
 
     return 0
 
