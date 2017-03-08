@@ -721,6 +721,11 @@ def calc_link_weights( links, paths ):
         links[ linkID ]["Attributes"]["Weights"] = {}
 
         #
+        # Initialize running sum
+        #
+        w_sum = 0
+
+        #
         # Iterate all tenants on that link
         #
         for tenantID in links[ linkID ]["Attributes"]["Active"]:
@@ -769,6 +774,7 @@ def calc_link_weights( links, paths ):
                 # Calculate weight; FairCloud-L model. (link)
                 #
                 weight = 1.0 / connections[source] + 1.0 / connections[target]
+                w_sum = w_sum + weight
 
                 #
                 # Save to json in 'Attributes'
