@@ -658,6 +658,13 @@ def delete_tenant( tenantID ):
 # link[ linkID ]["Attributes"]["Active"] is a json:
 # { tenantID : [pathID1, pathID2, ...] }
 #
+# Where: pathIDx is a json;
+# pathIDx : {
+#       Weight : xxx
+#       Fraction : xxx
+#       Bandwidth : xxx
+# }
+#
 def init_link_active( links ):
 
     for linkID in links:
@@ -691,16 +698,18 @@ def update_link_tenants( links, link_list ):
             for linkID in link_list[ pathID ]:
 
                 #
-                # Initialize list & create key, if not already set.
-                # Each 'tenantID' key hosts a list of pathIDs.
+                # Initialize tenant entry for this LINK, if not already set.
                 #
                 if tenantID not in links[ linkID ]["Attributes"]["Active"]:
-                    links[ linkID ]["Attributes"]["Active"][ tenantID ] = []
+                    links[ linkID ]["Attributes"]["Active"][ tenantID ] = {}
 
                 #
-                # Update tenantID & pathID
+                # Initialize path entry for that tenant.
                 #
-                links[ linkID ]["Attributes"]["Active"][ tenantID ].append( pathID )
+                links[ linkID ]["Attributes"]["Active"][ tenantID ][ pathID ] = {}
+                links[ linkID ]["Attributes"]["Active"][ tenantID ][ pathID ]["Weight"] = -1    # undefined
+                links[ linkID ]["Attributes"]["Active"][ tenantID ][ pathID ]["Fraction"] = -1  # undefined
+                links[ linkID ]["Attributes"]["Active"][ tenantID ][ pathID ]["Bandwidth"] = -1 # undefined
 
     return 0
 
@@ -733,6 +742,7 @@ def calc_link_weights( links, paths ):
             #
             # Iterate all paths of that tenant; first pass
             # Find out how many machines each machine is talking with
+            # over *THIS LINK* (PS-L).
             #
             connections = {}
 
@@ -777,10 +787,31 @@ def calc_link_weights( links, paths ):
                 w_sum = w_sum + weight
 
                 #
-                # Save to json in 'Attributes'
+                # Save to respective json in 'Attributes'
                 #
-                #paths[ pathID ]["Attributes"]["Target"]
+                links[ linkID ]["Attributes"]["Active"][ tenantID ][ pathID ]["Weight"] = weight
 
+
+        #
+        # We have calculated the weights of all paths of all tenants over this link.
+        # Re-iterate all tenants on this link.
+        #
+        for tenantID in links[ linkID ]["Attributes"]["Active"]:
+
+            #
+            # Iterate all paths on that link
+            #
+            for pathID in links[ linkID ]["Attributes"]["Active"][ tenantID ]:
+
+                #
+                # Get weight
+                #
+                weight = links[ linkID ]["Attributes"]["Active"][ tenantID ][ pathID ]["Weight"]
+
+                #
+                # Calculate fraction of bandwidth that will be allocated 
+                #
+                links[ linkID ]["Attributes"]["Active"][ tenantID ][ pathID ]["Fraction"] = 1.0 * weight / w_sum
 
     return 0
 
