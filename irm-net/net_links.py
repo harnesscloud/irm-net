@@ -811,7 +811,15 @@ def calc_link_weights( links, paths ):
                 #
                 # Calculate fraction of bandwidth that will be allocated 
                 #
-                links[ linkID ]["Attributes"]["Active"][ tenantID ][ pathID ]["Fraction"] = 1.0 * weight / w_sum
+                fraction = 1.0 * weight / w_sum
+                links[ linkID ]["Attributes"]["Active"][ tenantID ][ pathID ]["Fraction"] = fraction
+
+                #
+                # Calculate bandwidth allocated to that path
+                #
+                capacity = links[ linkID ]["Attributes"]["Bandwidth"]
+                allocated = 1.0 * fraction / capacity
+                links[ linkID ]["Attributes"]["Active"][ tenantID ][ pathID ]["Bandwidth"] = allocated
 
     return 0
 
