@@ -824,6 +824,32 @@ def calc_link_weights( links, paths ):
     return 0
 
 
+
+#
+# Calculate the bottleneck of each path:
+#
+def calc_bottleneck( paths, links, link_list ):
+
+    #
+    # Iterate all active tenants
+    #
+    for tenantID in tenantTable:
+
+        #
+        # Iterate all paths of tenant
+        #
+        for pathID in tenantTable[ tenantID ]:
+
+            #
+            #
+            #
+            print ''
+
+
+    return 0
+
+
+
 ################################## Fair Stuff - End ####################################
 ################################## Lib Stuff  - Start ##################################
 
