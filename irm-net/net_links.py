@@ -654,6 +654,18 @@ def delete_tenant( tenantID ):
 
 
 #
+# Update links & paths after tenant update.
+#
+def update_tenant_bandwidth( links, paths, link_list ):
+
+    init_link_active_tenants( links )
+    update_link_active_tenants( links, link_list )
+    calc_tenant_bottleneck( links, paths, link_list )
+
+    return 0
+
+
+#
 # Initialize link weights
 # Create empty jsons
 #
@@ -667,7 +679,7 @@ def delete_tenant( tenantID ):
 #       Bandwidth : xxx
 # }
 #
-def init_link_active( links ):
+def init_link_active_tenants( links ):
 
     for linkID in links:
         links[ linkID ]["Attributes"]["Active"] = {}
@@ -678,11 +690,6 @@ def init_link_active( links ):
 #
 #
 def update_link_tenants( links, link_list ):
-
-    #
-    # Delete all previous weights
-    #
-    init_link_active( links )
 
     #
     # Iterate all tenants
@@ -830,7 +837,7 @@ def calc_link_weights( links, paths ):
 #
 # Calculate the bottleneck of each path:
 #
-def calc_bottleneck( paths, links, link_list ):
+def calc_tenant_bottleneck( links, paths, link_list ):
 
     #
     # Iterate all active tenants
