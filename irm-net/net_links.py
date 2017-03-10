@@ -811,7 +811,7 @@ def calc_link_weights( links, paths ):
                 weight = links[ linkID ]["Attributes"]["Active"][ tenantID ][ pathID ]["Weight"]
 
                 #
-                # Calculate fraction of bandwidth that will be allocated 
+                # Calculate fraction of bandwidth that will be allocated
                 #
                 fraction = 1.0 * weight / w_sum
                 links[ linkID ]["Attributes"]["Active"][ tenantID ][ pathID ]["Fraction"] = fraction
@@ -843,10 +843,28 @@ def calc_bottleneck( paths, links, link_list ):
         for pathID in tenantTable[ tenantID ]:
 
             #
+            # Bottleneck bandwidth
+            # -1 is undefined
             #
-            #
-            print ''
+            bottleneck = -1
 
+            #
+            # Iterate all links in the path
+            # Find allocated
+            #
+            for linkID in link_list[ pathID ]:
+
+                bandwidth = links[ linkID ]["Attributes"]["Active"][ tenantID ][ pathID ]["Bandwidth"]
+
+                if bottleneck < 0 :
+                    bottleneck = bandwidth
+                else if bottleneck > bandwidth:
+                    bottleneck = bandwidth
+
+            #
+            # After iterating all links in the path, set the bottleneck
+            #
+            tenantTable[ tenantID ][ pathID ]["Bandwidth"] = bottleneck
 
     return 0
 
