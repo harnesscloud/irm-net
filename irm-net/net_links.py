@@ -593,9 +593,9 @@ tenantTable={}
 def add_tenant( tenantID, paths, resourceList ):
 
     #
-    # Initialize list of active pathIDs
+    # Initialize tenant json
     #
-    tenantTable[ tenantID ] = []
+    tenantTable[ tenantID ] = {}
 
     #
     # Generate all combinations from the
@@ -631,9 +631,11 @@ def add_tenant( tenantID, paths, resourceList ):
             raise Exception("Cannot find a path with source: %s and target: %s" % (source,target))
 
         #
-        # Add pathID to tenant array
+        # Initialize path json.
+        # Initialize values.
         #
-        tenantTable[ tenantID ].append( pathID )
+        tenantTable[ tenantID ][ pathID ] = {}
+        tenantTable[ tenantID ][ pathID ]["Bandwidth"] = -1  # undefined
 
     return 0
 
