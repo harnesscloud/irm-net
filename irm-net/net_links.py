@@ -208,7 +208,7 @@ def gen_topology(spec_nodes):
     #
     # FairCloud: initialize link weights with linkIDs
     #
-    init_link_active( links )
+    init_link_active_tenants( links )
 
     return links, nodes
     
