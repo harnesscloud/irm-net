@@ -688,7 +688,7 @@ def init_link_active_tenants( links ):
 #
 #
 #
-def update_link_tenants( links, link_list ):
+def update_link_active_tenants( links, link_list ):
 
     #
     # Iterate all tenants
