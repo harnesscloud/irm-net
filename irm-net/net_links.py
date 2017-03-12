@@ -827,7 +827,7 @@ def calc_link_weights( links, paths ):
                 # Calculate bandwidth allocated to that path
                 #
                 capacity = links[ linkID ]["Attributes"]["Bandwidth"]
-                allocated = 1.0 * fraction / capacity
+                allocated = 1.0 * fraction * capacity
                 links[ linkID ]["Attributes"]["Active"][ tenantID ][ pathID ]["Bandwidth"] = allocated
 
     return 0
