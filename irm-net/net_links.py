@@ -775,7 +775,7 @@ def calc_link_weights( links, paths ):
                     # Increase counter:
                     # source communicates with target and vice-versa
                     #
-                    connections[ machine ] = connections[ machine ] + 1
+                    connections[ machine ] += 1
 
             #
             # Iterate all paths of that tenant; second pass
