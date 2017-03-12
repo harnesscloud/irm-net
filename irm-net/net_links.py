@@ -864,7 +864,7 @@ def calc_tenant_bottleneck( links, paths, link_list ):
 
                 if bottleneck < 0 :
                     bottleneck = bandwidth
-                else if bottleneck > bandwidth:
+                elif bottleneck > bandwidth:
                     bottleneck = bandwidth
 
             #
