@@ -659,6 +659,7 @@ def update_tenant_bandwidth( links, paths, link_list ):
 
     init_link_active_tenants( links )
     update_link_active_tenants( links, link_list )
+    calc_link_weights( links, paths )
     calc_tenant_bottleneck( links, paths, link_list )
 
     return 0
