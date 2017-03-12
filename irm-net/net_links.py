@@ -876,6 +876,30 @@ def calc_tenant_bottleneck( links, paths, link_list ):
     return 0
 
 
+#
+# Deploy bandwidth rate limit
+#
+def deploy_tenant_ratelimit( tenants, paths ):
+
+    #
+    # Iterate all active tenants
+    #
+    for tenantID in tenants:
+
+        #
+        # Iterate all paths
+        #
+        for pathID in tenants[ tenantID ]:
+
+            #
+            # Get source/target and bandwidth cap
+            #
+            source = paths[ pathID ]["Attributes"]["Source"]
+            target = paths[ pathID ]["Attributes"]["Target"]
+
+
+    return 0
+
 
 ################################## Fair Stuff - End ####################################
 ################################## Lib Stuff  - Start ##################################
