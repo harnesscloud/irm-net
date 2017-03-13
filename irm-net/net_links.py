@@ -905,6 +905,24 @@ def deploy_tenant_ratelimit( tenants, paths ):
 ################################## Lib Stuff  - Start ##################################
 
 #
+# Function:
+#   register_bandwidth_rate_ID
+# Purpose:
+#   Register future bandwidth modification
+#
+def register_bandwidth_rate_ID( rateList, sourceMachineID, targetMachineID, bandwidth ):
+
+    record = {}
+    record["TargetID"] = targetMachineID
+    record["Bandwidth"] = bandwidth
+    record["dirty"] = 1
+
+    rateList[ sourceMachineID ] = record
+
+    return 0
+
+
+#
 # TODO close processes
 # http://kendriu.com/how-to-use-pipes-in-python-subprocesspopen-objects
 #
