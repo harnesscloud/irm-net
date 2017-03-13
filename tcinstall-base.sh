@@ -89,6 +89,14 @@ if [ -z "\$BWRATESTRING" ]; then
 fi
 
 #
+# Delete any previous rule that might exist
+# Reset the rule root.
+#
+\$TC qdisc del dev \$IF root
+\$TC qdisc add dev \$IF handle 1: root htb
+\$TC class add dev \$IF parent 1: classid 1:1  htb rate 20000mbit
+
+#
 # Bandwidth shaping classes.
 # Will have numerous sub-classes, one per rule.
 #
