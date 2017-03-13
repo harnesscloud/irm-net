@@ -908,7 +908,7 @@ def deploy_tenant_ratelimit( tenants, paths ):
 # Function:
 #   register_bandwidth_rate_ID
 # Purpose:
-#   Register future bandwidth modification
+#   Register future bandwidth modification to @rateList.
 #
 def register_bandwidth_rate_ID( rateList, sourceMachineID, targetMachineID, bandwidth ):
 
@@ -921,6 +921,113 @@ def register_bandwidth_rate_ID( rateList, sourceMachineID, targetMachineID, band
 
     return 0
 
+
+#
+#
+# Purpose:
+#   Installs bandwidth rules found in @bandwidthList
+#   on machine @sourceMachineID.
+#   Overrides any previous rules.
+#
+def install_rules( sourceMachineID, bandwidthList ):
+
+    # Get private IP
+    sourceIP = get_private_IP_from_ID( sourceMachineID )
+    if sourceIP == None:
+        raise Exception("Could not find Private IP for source machine " + sourceMachineID )
+
+    #
+    # Craft bandwidth requests
+    # @bandwidthList is a list of jsons:
+    # { 'TargetID' : xxx, 'Rate' : xxx }
+    #
+    bwReq = []
+    for compoundRequest in bandwidthList:
+
+        if "TargetID" not in compoundRequest:
+            raise Exception("'TargetID' not found in bandwidth request")
+        elif "Rate" not in compoundRequest:
+            raise Exception("'Rate' not found in bandwidth request")
+
+        targetMachineID = compoundRequest["TargetID"]
+        rate = compoundRequest["Rate"]
+
+        #
+        # Get target IP
+        #
+        targetIP = get_private_IP_from_ID( targetMachineID )
+        if targetIP == None:
+            raise Exception("Could not find Private IP for target machine " + targetMachineID)
+
+        bwReq.append({'Target': targetIP, 'Rate': str(rate)+"mbit"})
+
+
+    #
+    # Propagate the rules
+    #
+    propagate_rules( sourceIP, bwReq )
+
+    return 0
+
+
+#
+#
+# @bwRatesString    list of jsons with traffic rules:
+#                   e.g. [{"Target":"10.158.0.3","Rate":"100mbit"}, {...}]'
+#
+def propagate_rules( sourceMachineIP, bwRatesString ):
+
+    #
+    # TC Installation Base File
+    # Read it; replace the placeholders.
+    #
+    tcBaseFile = "tcinstall-base.sh"
+    file_ = open(irm_net_path + "/../" + tcBaseFile,'r')
+
+    tcBaseData = file_.read()
+    file_.close()
+    tcCommand = tcBaseData.replace('__BWRATESTRING',json.JSONEncoder().encode(bwRatesString))
+
+    #
+    # Retrieve conpaasIP if not already there.
+    # We assume that it does not change.
+    # TODO retrieve again if cannot connet
+    #
+    global FIP_CONPAAS_DIRECTOR
+    if FIP_CONPAAS_DIRECTOR is None :
+        FIP_CONPAAS_DIRECTOR = get_public_IP_from_ID( 'conpaas-director' )
+
+    #
+    # Use a local variable now
+    #
+    conpaasIP = FIP_CONPAAS_DIRECTOR
+    if conpaasIP is None:
+        raise Exception("Could not retrieve Public IP of conpaas-director")
+
+    #
+    # Craft remote command @ conpaas-director
+    #
+    conpaasCommand = 'ssh root@' + sourceMachineIP + ' bash -s << EOF\n' + tcCommand + '\nEOF'
+
+    #
+    # Connect to conpaas-director
+    # TODO timeout?
+    #
+    try:
+        client = paramiko.SSHClient()
+        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        client.connect(conpaasIP, username='root')
+    except paramiko.AuthenticationException:
+        raise Exception("Authentication failed when connecting to conpaas-director")
+
+    stdin, stdout, stderr = client.exec_command( conpaasCommand )
+    client.close()
+
+    return 0
+
+
+################################## Lib Stuff - End ####################################
+################################## Old Lib Stuff - Start ##############################
 
 #
 # TODO close processes
@@ -1012,7 +1119,7 @@ def traffic_rules_propagate( srcIP, dstIP, bandwidthList ):
     #
     # Retrieve conpaasIP if not already there.
     # We assume that it does not change.
-    # TODO retrieve again if cannot connet
+    # TODO retrieve again if cannot connect
     #
     global FIP_CONPAAS_DIRECTOR
     if FIP_CONPAAS_DIRECTOR is None :
@@ -1096,7 +1203,7 @@ def get_IP_from_ID( entryID, regexIP ):
     return matches[0]
 
 
-################################## Lib Stuff - End ####################################
+################################## Old Lib Stuff - End ################################
 
 #
 # Initialize config variables
