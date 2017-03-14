@@ -680,6 +680,13 @@ def update_tenant_bandwidth( links, paths, link_list ):
     rateList = {}
     register_ID_list( rateList, tenantTable )
 
+    #
+    # Commit all bandwidth rates.
+    # TODO this might commit unchanged rates, as well.
+    #
+    for sourceMachineID in rateList:
+        install_rules( sourceMachineID, rateList[ sourceMachineID ] )
+
     return 0
 
 
