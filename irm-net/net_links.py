@@ -644,7 +644,7 @@ def add_tenant( tenantID, paths, resourceList ):
 
             if machineHost == source :
                 tenantTable[ tenantID ][ pathID ]["SourceID"] = machineID
-            elif mahineHost == target :
+            elif machineHost == target :
                 tenantTable[ tenantID ][ pathID ]["TargetID"] = machineID
 
     return 0
