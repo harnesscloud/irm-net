@@ -632,9 +632,20 @@ def add_tenant( tenantID, paths, resourceList ):
         #
         # Initialize path json.
         # Initialize values.
+        # Store ID values of machines.
         #
         tenantTable[ tenantID ][ pathID ] = {}
         tenantTable[ tenantID ][ pathID ]["Bandwidth"] = -1  # undefined
+
+        for resource in resourceList:
+
+            machineHost = resource["Host"]
+            machineID   = resource["ID"]
+
+            if machineHost == source :
+                tenantTable[ tenantID ][ pathID ]["SourceID"] = machineID
+            elif mahineHost == target :
+                tenantTable[ tenantID ][ pathID ]["TargetID"] = machineID
 
     return 0
 
