@@ -673,6 +673,13 @@ def update_tenant_bandwidth( links, paths, link_list ):
     calc_link_weights( links, paths )
     calc_tenant_bottleneck( links, paths, link_list )
 
+    #
+    # Register IDs in @tenantTable to @rateList
+    # in order to propagate the rules to the actual containers.
+    #
+    rateList = {}
+    register_ID_list( rateList, tenantTable )
+
     return 0
 
 
@@ -888,6 +895,22 @@ def calc_tenant_bottleneck( links, paths, link_list ):
 
 
 #
+# Create Rate Limit list
+#
+def register_ID_list( rateList, tenants ):
+
+    for tenantID in tenants:
+        for pathID in tenants[ tenantID ]:
+            sourceMachineID = tenants[ tenantID ][ pathID ]["SourceID"]
+            targetMachineID = tenants[ tenantID ][ pathID ]["TargetID"]
+            bandwidth = tenants[ tenantID ][ pathID ]["Bandwidth"]
+
+            register_ID_rate( rateList, sourceMachineID, targetMachineID, bandwidth )
+
+    return r
+
+
+#
 # Deploy bandwidth rate limit
 #
 def deploy_tenant_ratelimit( tenants, paths ):
@@ -917,11 +940,11 @@ def deploy_tenant_ratelimit( tenants, paths ):
 
 #
 # Function:
-#   register_bandwidth_rate_ID
+#   register_ID_rate
 # Purpose:
 #   Register future bandwidth modification to @rateList.
 #
-def register_bandwidth_rate_ID( rateList, sourceMachineID, targetMachineID, bandwidth ):
+def register_ID_rate( rateList, sourceMachineID, targetMachineID, bandwidth ):
 
     record = {}
     record["TargetID"] = targetMachineID
