@@ -913,6 +913,7 @@ def register_ID_list( rateList, tenants ):
             bandwidth = tenants[ tenantID ][ pathID ]["Bandwidth"]
 
             register_ID_rate( rateList, sourceMachineID, targetMachineID, bandwidth )
+            register_ID_rate( rateList, targetMachineID, sourceMachineID, bandwidth )
 
     return 0
 
