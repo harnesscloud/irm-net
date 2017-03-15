@@ -914,7 +914,7 @@ def register_ID_list( rateList, tenants ):
 
             register_ID_rate( rateList, sourceMachineID, targetMachineID, bandwidth )
 
-    return r
+    return 0
 
 
 #
