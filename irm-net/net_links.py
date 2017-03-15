@@ -956,8 +956,8 @@ def register_ID_rate( rateList, sourceMachineID, targetMachineID, bandwidth ):
 
     record = {}
     record["TargetID"] = targetMachineID
-    record["Bandwidth"] = bandwidth
-    record["dirty"] = 1
+    record["Rate"] = bandwidth
+    record["dirty"] = 1 # TODO remove; not used
 
     #
     # Initialize list of records
