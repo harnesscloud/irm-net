@@ -471,7 +471,7 @@ def faircloud_remove_tenant (links, paths, link_list, link_res, tenantID):
 
 
 def faircloud_delete_all_tenants():
-    tenantTable = {}
+    delete_all_tenants()
     return 0
 
 
@@ -665,6 +665,15 @@ def delete_tenant( tenantID ):
     else:
         raise Exception("Tenant not found" % tenantID)
 
+    return 0
+
+
+#
+# Delete all tenants from @tenantTable
+#
+def delete_all_tenants():
+
+    tenantTable = {}
     return 0
 
 
