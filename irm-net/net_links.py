@@ -959,7 +959,17 @@ def register_ID_rate( rateList, sourceMachineID, targetMachineID, bandwidth ):
     record["Bandwidth"] = bandwidth
     record["dirty"] = 1
 
-    rateList[ sourceMachineID ] = record
+    #
+    # Initialize list of records
+    # if not already there.
+    #
+    if sourceMachineID not in rateList:
+        rateList[ sourceMachineID ] = []
+
+    #
+    # Append record to rateList
+    #
+    rateList[ sourceMachineID ].append( record )
 
     return 0
 
