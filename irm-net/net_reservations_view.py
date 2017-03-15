@@ -250,6 +250,9 @@ class NETReservationsView(ReservationsView):
           hresman.utils.delete_({}, "releaseAllReservations", managers[m]['Port'], managers[m]['Address'])
        ReservationsView.reservations = {}
 
+       # Delete all FairCloud tenants
+       faircloud_delete_all_tenants()
+
        topology = NETResourcesView.Topology                                                     
        for id in copy.copy(NETReservationsView.LinkReservations):
           link_release_reservation(topology["links"], topology["paths"], topology["link_list"],\

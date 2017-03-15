@@ -470,6 +470,10 @@ def faircloud_remove_tenant (links, paths, link_list, link_res, tenantID):
     return 0
 
 
+def faircloud_delete_all_tenants():
+    tenantTable = {}
+
+
 def link_create_reservation (links, paths, link_list, link_res, req, reservedMachineResources):
     #logger.info("Called")
 
