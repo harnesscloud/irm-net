@@ -472,6 +472,7 @@ def faircloud_remove_tenant (links, paths, link_list, link_res, tenantID):
 
 def faircloud_delete_all_tenants():
     tenantTable = {}
+    return 0
 
 
 def link_create_reservation (links, paths, link_list, link_res, req, reservedMachineResources):

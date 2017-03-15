@@ -15,7 +15,7 @@ import uuid
 import json
 from hresman.utils import post
 from operator import itemgetter
-from net_links import link_create_reservation, link_release_reservation, link_check_reservation, faircloud_add_tenant, faircloud_remove_tenant
+from net_links import link_create_reservation, link_release_reservation, link_check_reservation, faircloud_add_tenant, faircloud_remove_tenant, faircloud_delete_all_tenants
 import copy
 import logging
 
