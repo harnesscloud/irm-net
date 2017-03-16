@@ -673,7 +673,13 @@ def delete_tenant( tenantID ):
 #
 def delete_all_tenants():
 
-    tenantTable = {}
+    delList = []
+    for key in tenantTable:
+        delList.append( key )
+
+    for key in delList:
+        del tenantTable[key]
+
     return 0
 
 
