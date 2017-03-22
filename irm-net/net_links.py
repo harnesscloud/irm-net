@@ -658,12 +658,12 @@ def add_tenant( tenantID, paths, resourceList ):
 #
 # Remove tenant from @tenantTable
 #
-def delete_tenant( tenantID ):
+def remove_tenant( tenantID ):
 
     if tenantID in tenantTable:
         del tenantTable[ tenantID ]
     else:
-        raise Exception("Tenant not found" % tenantID)
+        raise Exception("Tenant not found " % tenantID)
 
     return 0
 

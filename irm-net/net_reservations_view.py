@@ -227,6 +227,7 @@ class NETReservationsView(ReservationsView):
 
           # Delete the tenant from the FairCloud database
           resID = reservation
+          topology = NETResourcesView.Topology
           faircloud_remove_tenant(topology["links"], topology["paths"], topology["link_list"],\
                   NETReservationsView.LinkReservations, str(resID))
 
