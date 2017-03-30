@@ -479,9 +479,21 @@ def link_create_reservation (links, paths, link_list, link_res, req, reservedLin
     #
     if 'Bandwidth' not in req['Attributes']:
        raise Exception("Bandwidth attribute required!")
-    bandwidth = req['Attributes']['Bandwidth']
-    if bandwidth <= 0:
+
+    #
+    # Actual bandwidth requested by the tenant
+    #
+    bandwidthActual = req['Attributes']['Bandwidth']
+    if bandwidthActual <= 0:
        raise Exception("Invalid bandwidth %.2f requested!" % bandwidth)
+
+
+    #
+    # Bandwidth that will be reserved, under the hood
+    # 0 < alpha <= 1
+    #
+    alpha = 0.5
+    bandwidth = alpha * bandwidthActual
 
     #
     # Sanity check: there is enough bandwidth in each link
@@ -505,11 +517,12 @@ def link_create_reservation (links, paths, link_list, link_res, req, reservedLin
     #
     # Update the paths, since we might have reserved bandwidth
     # on a bottleneck link
+    # Use the ACTUAL bandwidth that was requested by the tenant.
     #
     calculate_attribs(paths, link_list, links)
     install_traffic_rules( paths[pathID]["Attributes"]["Source"], \
             paths[pathID]["Attributes"]["Target"],
-            bandwidth, reservedLinkResources )
+            bandwidthActual, reservedLinkResources )
     
     return resID
     
