@@ -6,6 +6,7 @@ import copy
 import uuid
 import os
 import sys
+import time
 
 import re           # grep IPs using regex
 import paramiko     # ssh remote commands
@@ -690,6 +691,7 @@ def traffic_rules_propagate( srcIP, dstIP, bandwidthList ):
     #
     retry = 50
     while (retry > 0) and len(error) and re.search("Connection refused", error[0]) > 0:
+        time.sleep(1)
         retry = retry - 1
         stdin, stdout, stderr = client.exec_command( conpaasCommand )
         error = stderr.readlines()
