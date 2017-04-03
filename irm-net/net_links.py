@@ -682,7 +682,30 @@ def traffic_rules_propagate( srcIP, dstIP, bandwidthList ):
         raise Exception("Authentication failed when connecting to conpaas-director")
 
     stdin, stdout, stderr = client.exec_command( conpaasCommand )
+    error = stderr.readlines()
+
+    #
+    # Was the connection established?
+    # Retry if not. Cap the retry times.
+    #
+    retry = 50
+    while (retry > 0) and len(error) and re.search("Connection refused", error[0]) > 0:
+        retry = retry - 1
+        stdin, stdout, stderr = client.exec_command( conpaasCommand )
+        error = stderr.readlines()
+
+    #
+    # Close the connection
+    #
     client.close()
+
+    #
+    # Abort if failed
+    #
+    if ( retry <= 0 ):
+        raise Exception("Could not connect to " + sourceMachineIP)
+
+    return 0
 
 
 #
