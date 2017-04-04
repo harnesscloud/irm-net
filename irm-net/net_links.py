@@ -413,7 +413,8 @@ def link_calc_capacity(resource, allocation, release):
 
     # Request less bandwidth
     alpha = OVERSUBSCRIPTION_FACTOR
-    bandwidth = alpha * bandwidthRequested
+    bandwidthSubscribed = alpha * bandwidthRequested
+    bandwidth = bandwidthSubscribed
 
     bandwidth_release = 0
     for rel in release:
@@ -444,7 +445,7 @@ def link_calc_capacity(resource, allocation, release):
        if alloc["Attributes"]["Target"] != target:
           return {}       
        
-       bandwidth = bandwidth - alloc["Attributes"]["Bandwidth"]             
+       bandwidth = bandwidth - bandwidthSubscribed
        if bandwidth < 0:
           return {}
     
