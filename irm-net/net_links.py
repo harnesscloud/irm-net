@@ -14,6 +14,10 @@ import paramiko     # ssh remote commands
 # Floating IP of conpaas-director
 FIP_CONPAAS_DIRECTOR = None
 
+# Over-subscription factor
+# When receiving a bandwidth request, we will reserve less.
+# 0 < alpha <= 1
+OVERSUBSCRIPTION_FACTOR = 0.5
 
 ################################## CLI Stuff - Start ##################################
 
@@ -406,7 +410,11 @@ def link_calc_capacity(resource, allocation, release):
     bandwidth = resource["Attributes"]["Bandwidth"]  
     source = resource["Attributes"]["Source"]
     target = resource["Attributes"]["Target"]
- 
+
+    # Request less bandwidth
+    alpha = OVERSUBSCRIPTION_FACTOR
+    bandwidth = alpha * bandwidthActual
+
     bandwidth_release = 0
     for rel in release:
        if "Bandwidth" not in rel["Attributes"]:
@@ -493,7 +501,7 @@ def link_create_reservation (links, paths, link_list, link_res, req, reservedLin
     # Bandwidth that will be reserved, under the hood
     # 0 < alpha <= 1
     #
-    alpha = 0.5
+    alpha = OVERSUBSCRIPTION_FACTOR
     bandwidth = alpha * bandwidthActual
 
     #
