@@ -407,13 +407,13 @@ def link_calc_capacity(resource, allocation, release):
     if "Target" not in resource["Attributes"]:
        raise Exception("Target attribute must be specified in Resource!")
        
-    bandwidth = resource["Attributes"]["Bandwidth"]  
+    bandwidthRequested = resource["Attributes"]["Bandwidth"]
     source = resource["Attributes"]["Source"]
     target = resource["Attributes"]["Target"]
 
     # Request less bandwidth
     alpha = OVERSUBSCRIPTION_FACTOR
-    bandwidth = alpha * bandwidthActual
+    bandwidth = alpha * bandwidthRequested
 
     bandwidth_release = 0
     for rel in release:
