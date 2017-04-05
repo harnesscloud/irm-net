@@ -445,7 +445,7 @@ def link_calc_capacity(resource, allocation, release):
        if alloc["Attributes"]["Target"] != target:
           return {}       
        
-       bandwidth = bandwidth - bandwidthSubscribed
+       bandwidth = bandwidth - alpha * alloc["Attributes"]["Bandwidth"]
        if bandwidth < 0:
           return {}
     
