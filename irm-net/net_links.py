@@ -6,7 +6,6 @@ import copy
 import uuid
 import os
 import sys
-import time
 
 import re           # grep IPs using regex
 import paramiko     # ssh remote commands
@@ -14,10 +13,6 @@ import paramiko     # ssh remote commands
 # Floating IP of conpaas-director
 FIP_CONPAAS_DIRECTOR = None
 
-# Over-subscription factor
-# When receiving a bandwidth request, we will reserve less.
-# 0 < alpha <= 1
-OVERSUBSCRIPTION_FACTOR = 0.5
 
 ################################## CLI Stuff - Start ##################################
 
@@ -406,15 +401,10 @@ def link_calc_capacity(resource, allocation, release):
        raise Exception("Source attribute must be specified in Resource!")
     if "Target" not in resource["Attributes"]:
        raise Exception("Target attribute must be specified in Resource!")
-       
-    bandwidthRequested = resource["Attributes"]["Bandwidth"]
+
+    bandwidth = resource["Attributes"]["Bandwidth"]
     source = resource["Attributes"]["Source"]
     target = resource["Attributes"]["Target"]
-
-    # Request less bandwidth
-    alpha = OVERSUBSCRIPTION_FACTOR
-    bandwidthSubscribed = alpha * bandwidthRequested
-    bandwidth = bandwidthSubscribed
 
     bandwidth_release = 0
     for rel in release:
@@ -445,7 +435,7 @@ def link_calc_capacity(resource, allocation, release):
        if alloc["Attributes"]["Target"] != target:
           return {}       
        
-       bandwidth = bandwidth - alpha * alloc["Attributes"]["Bandwidth"]
+       bandwidth = bandwidth - alloc["Attributes"]["Bandwidth"]
        if bandwidth < 0:
           return {}
     
@@ -489,21 +479,9 @@ def link_create_reservation (links, paths, link_list, link_res, req, reservedLin
     #
     if 'Bandwidth' not in req['Attributes']:
        raise Exception("Bandwidth attribute required!")
-
-    #
-    # Actual bandwidth requested by the tenant
-    #
-    bandwidthActual = req['Attributes']['Bandwidth']
-    if bandwidthActual <= 0:
+    bandwidth = req['Attributes']['Bandwidth']
+    if bandwidth <= 0:
        raise Exception("Invalid bandwidth %.2f requested!" % bandwidth)
-
-
-    #
-    # Bandwidth that will be reserved, under the hood
-    # 0 < alpha <= 1
-    #
-    alpha = OVERSUBSCRIPTION_FACTOR
-    bandwidth = alpha * bandwidthActual
 
     #
     # Sanity check: there is enough bandwidth in each link
@@ -527,12 +505,11 @@ def link_create_reservation (links, paths, link_list, link_res, req, reservedLin
     #
     # Update the paths, since we might have reserved bandwidth
     # on a bottleneck link
-    # Use the ACTUAL bandwidth that was requested by the tenant.
     #
     calculate_attribs(paths, link_list, links)
     install_traffic_rules( paths[pathID]["Attributes"]["Source"], \
             paths[pathID]["Attributes"]["Target"],
-            bandwidthActual, reservedLinkResources )
+            bandwidth, reservedLinkResources )
     
     return resID
     
@@ -692,31 +669,7 @@ def traffic_rules_propagate( srcIP, dstIP, bandwidthList ):
         raise Exception("Authentication failed when connecting to conpaas-director")
 
     stdin, stdout, stderr = client.exec_command( conpaasCommand )
-    error = stderr.readlines()
-
-    #
-    # Was the connection established?
-    # Retry if not. Cap the retry times.
-    #
-    retry = 50
-    while (retry > 0) and len(error) and re.search("Connection refused", error[0]) > 0:
-        time.sleep(1)
-        retry = retry - 1
-        stdin, stdout, stderr = client.exec_command( conpaasCommand )
-        error = stderr.readlines()
-
-    #
-    # Close the connection
-    #
     client.close()
-
-    #
-    # Abort if failed
-    #
-    if ( retry <= 0 ):
-        raise Exception("Could not connect to " + sourceMachineIP)
-
-    return 0
 
 
 #
