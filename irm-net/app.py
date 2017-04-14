@@ -40,17 +40,20 @@ parser.add_option("-p", "--port", dest="PORT", default=7779,
                   help="IRM-NET port", type="int")
                   
 parser.add_option("-o", "--chost", dest="CRS_HOST", default="localhost",
-                  help="CRS host", type="string")      
+                  help="CRS host", type="string")
                   
 parser.add_option("-t", "--cport", dest="CRS_PORT", default=56788,
-                  help="CRS port", type="int") 
+                  help="CRS port", type="int")
                            
 parser.add_option("-d", "--disable-crs", dest="CRS_DISABLE", default=False,
-                  help="disable CRS", action="store_true")       
+                  help="disable CRS", action="store_true")
                   
 parser.add_option("-i", "--ignore-irms", dest="IGNORE_IRMS", default=False,
-                  help="ignore IRM-NOVA and IRM-NEUTRON", action="store_true")                                        
+                  help="ignore IRM-NOVA and IRM-NEUTRON", action="store_true")
                 
+parser.add_option("-b", "--beta", dest="BETA", default=1.0,
+                  help="over-subscription factor (beta >= 1)", type=float)
+
 (options,_) = parser.parse_args()
 
 def request_resources (): 
