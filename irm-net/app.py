@@ -74,7 +74,8 @@ NETManagersView.IGNORE_IRMS=options.IGNORE_IRMS
 NETManagersView.CRS_HOST = options.CRS_HOST
 NETManagersView.CRS_PORT = options.CRS_PORT
 NETManagersView.PORT = options.PORT
-NETManagersView.BETA = options.BETA
+
+NETResourcesView.OVERSUBSCRIPTION_FACTOR = options.BETA
 
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)

@@ -16,6 +16,8 @@ class NETResourcesView(ResourcesView):
     ManagersTypes = None
     Topology = None
     Webs = None
+
+    OVERSUBSCRIPTION_FACTOR = 1.0
     
     #@staticmethod
     #def load_topology():
