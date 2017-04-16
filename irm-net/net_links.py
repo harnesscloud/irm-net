@@ -188,7 +188,8 @@ def process_spec(links, nodes, source, spec_nodes, level, n, context, beta):
           key = "l_" + source + "_" + target   
           #cprint ":::>", ' ' * level*4, key, ":", context[0], ":", context[1], ":", context[2]    
           links[key] = { "Type": "Link", "Source": source, "Target": target, \
-                        "Attributes": { "Latency": latency, "Bandwidth": bandwidth } }
+                        "Attributes": { "Latency": latency, "Bandwidth": bandwidth*beta,
+                            "Capacity": bandwidth } }
           if level < len(context):
              context[level] = target
           process_spec(links, nodes, target, spec_nodes[target], level+1, n, context, beta)
