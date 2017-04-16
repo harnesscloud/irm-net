@@ -128,7 +128,7 @@ def load_spec_nodes(mchn):
 
    
      
-def link_gen_topology(machines): 
+def link_gen_topology(machines, oversubscription_factor):
    
    mchn = { k:{} for k,v in machines.items() }
 
@@ -161,14 +161,14 @@ def link_gen_topology(machines):
    spec_nodes = load_spec_nodes(mchn)
    #print "spec_nodes = ", spec_nodes
 
-   links,nodes=gen_topology(spec_nodes)
+   links,nodes=gen_topology(spec_nodes, oversubscription_factor)
 
    #print "links=", json.dumps(links, indent=4)
    #print "nodes=", json.dumps(nodes, indent=4)
    paths, link_list, constraint_list = gen_paths(links, nodes)
    return { "links": links, "nodes": nodes, "paths": paths, "link_list": link_list, "constraint_list": constraint_list }
 
-def process_spec(links, nodes, source, spec_nodes, level, n, context):
+def process_spec(links, nodes, source, spec_nodes, level, n, context, beta):
     if spec_nodes == {}:
        nodes[n[0]] = { "Datacenter": context[0], "Cluster": context[1], "Switch": context[2], "ID": source }
        n[0] = n[0] + 1
@@ -191,15 +191,16 @@ def process_spec(links, nodes, source, spec_nodes, level, n, context):
                         "Attributes": { "Latency": latency, "Bandwidth": bandwidth } }
           if level < len(context):
              context[level] = target
-          process_spec(links, nodes, target, spec_nodes[target], level+1, n, context)
+          process_spec(links, nodes, target, spec_nodes[target], level+1, n, context, beta)
              
-def gen_topology(spec_nodes):    
+def gen_topology(spec_nodes, oversubscription_factor):
     # Generate nodes and links
     links = { }
     nodes = { }
     context = ["", "", ""]
     
-    process_spec(links, nodes, "root", spec_nodes, 0, [0], context)
+    process_spec(links, nodes, "root", spec_nodes, 0, [0], context,
+            oversubscription_factor)
     #print "LINKS=", json.dumps(links, indent=4) 
     #print "NODES=", json.dumps(nodes, indent=4)
       
