@@ -327,6 +327,7 @@ def calculate_attribs(paths, link_list, links):
          # Calculate PATH latency & BW
          latency = 0
          bandwidth = links[ link_list[id][0] ]["Attributes"]["Bandwidth"]
+         capacity  = links[ link_list[id][0] ]["Attributes"]["Capacity"]
 
          for k in range( len(link_list[id]) ):
 
@@ -335,11 +336,18 @@ def calculate_attribs(paths, link_list, links):
 
              latency = latency + aLink["Attributes"]["Latency"]
              linkBW = aLink["Attributes"]["Bandwidth"]
+             linkCap = aLink["Attributes"]["Capacity"]
 
              if ( linkBW < bandwidth ):
                      bandwidth = linkBW
 
-         paths[id]["Attributes"]["Bandwidth"] = bandwidth
+             if ( linkCap < capacity ):
+                     capacity = linkCap
+
+         #
+         # Path bandwidth: min( beta*bandwidth, capacity )
+         #
+         paths[id]["Attributes"]["Bandwidth"] = min( bandwidth, capacity )
          paths[id]["Attributes"]["Latency"]   = "%.2f" % latency
 
 def gen_constraints(link_list, links):
