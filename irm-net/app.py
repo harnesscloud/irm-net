@@ -33,8 +33,6 @@ net_views=[NETManagersView, \
            NETResourcesView, \
            NETReservationsView]
              
-mgr = HarnessResourceManager(net_views)
-
 parser = OptionParser()
 parser.add_option("-p", "--port", dest="PORT", default=7779,
                   help="IRM-NET port", type="int")
@@ -65,10 +63,6 @@ def request_resources ():
      pass
 
 
-request_resources()
-
-#NETResourcesView.load_topology()
-
 NETManagersView.CRS_DISABLE=options.CRS_DISABLE
 NETManagersView.IGNORE_IRMS=options.IGNORE_IRMS
 NETManagersView.CRS_HOST = options.CRS_HOST
@@ -76,6 +70,10 @@ NETManagersView.CRS_PORT = options.CRS_PORT
 NETManagersView.PORT = options.PORT
 
 NETResourcesView.OVERSUBSCRIPTION_FACTOR = options.BETA
+
+mgr = HarnessResourceManager(net_views)
+request_resources()
+
 
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
