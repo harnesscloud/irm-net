@@ -129,7 +129,7 @@ def load_spec_nodes(mchn):
 
    
      
-def link_gen_topology(machines): 
+def link_gen_topology(machines):
    
    mchn = { k:{} for k,v in machines.items() }
 
@@ -194,7 +194,7 @@ def process_spec(links, nodes, source, spec_nodes, level, n, context):
              context[level] = target
           process_spec(links, nodes, target, spec_nodes[target], level+1, n, context)
              
-def gen_topology(spec_nodes):    
+def gen_topology(spec_nodes):
     # Generate nodes and links
     links = { }
     nodes = { }
@@ -402,11 +402,11 @@ def link_calc_capacity(resource, allocation, release):
        raise Exception("Source attribute must be specified in Resource!")
     if "Target" not in resource["Attributes"]:
        raise Exception("Target attribute must be specified in Resource!")
-       
-    bandwidth = resource["Attributes"]["Bandwidth"]  
+
+    bandwidth = resource["Attributes"]["Bandwidth"]
     source = resource["Attributes"]["Source"]
     target = resource["Attributes"]["Target"]
- 
+
     bandwidth_release = 0
     for rel in release:
        if "Bandwidth" not in rel["Attributes"]:
@@ -420,7 +420,7 @@ def link_calc_capacity(resource, allocation, release):
           return {}
        if rel["Attributes"]["Target"] != target:
           return {}       
-       
+
        bandwidth = bandwidth + rel["Attributes"]["Bandwidth"]
           
     for alloc in allocation:
@@ -436,7 +436,7 @@ def link_calc_capacity(resource, allocation, release):
        if alloc["Attributes"]["Target"] != target:
           return {}       
        
-       bandwidth = bandwidth - alloc["Attributes"]["Bandwidth"]             
+       bandwidth = bandwidth - alloc["Attributes"]["Bandwidth"]
        if bandwidth < 0:
           return {}
     

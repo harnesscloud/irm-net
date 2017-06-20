@@ -43,7 +43,7 @@ class NETResourcesView(ResourcesView):
              # changes when new machines/web resources appear.
              webs = {k: v for k, v in resources.items() if v["Type"].split("-")[0] == "Web"} 
              machines.update(webs)
-             NETResourcesView.Topology = link_gen_topology(machines)   
+             NETResourcesView.Topology = link_gen_topology(machines)
                     
           if NETResourcesView.Topology != None: 
              resources.update(NETResourcesView.Topology["paths"])          
