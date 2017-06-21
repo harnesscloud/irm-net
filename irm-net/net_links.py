@@ -131,7 +131,7 @@ def load_spec_nodes(mchn):
 
    
      
-def link_gen_topology(machines): 
+def link_gen_topology(machines):
    
    mchn = { k:{} for k,v in machines.items() }
 
@@ -196,7 +196,7 @@ def process_spec(links, nodes, source, spec_nodes, level, n, context):
              context[level] = target
           process_spec(links, nodes, target, spec_nodes[target], level+1, n, context)
              
-def gen_topology(spec_nodes):    
+def gen_topology(spec_nodes):
     # Generate nodes and links
     links = { }
     nodes = { }
@@ -205,11 +205,6 @@ def gen_topology(spec_nodes):
     process_spec(links, nodes, "root", spec_nodes, 0, [0], context)
     #print "LINKS=", json.dumps(links, indent=4) 
     #print "NODES=", json.dumps(nodes, indent=4)
-
-    #
-    # FairCloud: initialize link weights with linkIDs
-    #
-    init_link_active_tenants( links )
 
     return links, nodes
     
@@ -409,11 +404,11 @@ def link_calc_capacity(resource, allocation, release):
        raise Exception("Source attribute must be specified in Resource!")
     if "Target" not in resource["Attributes"]:
        raise Exception("Target attribute must be specified in Resource!")
-       
-    bandwidth = resource["Attributes"]["Bandwidth"]  
+
+    bandwidth = resource["Attributes"]["Bandwidth"]
     source = resource["Attributes"]["Source"]
     target = resource["Attributes"]["Target"]
- 
+
     bandwidth_release = 0
     for rel in release:
        if "Bandwidth" not in rel["Attributes"]:
@@ -427,9 +422,9 @@ def link_calc_capacity(resource, allocation, release):
           return {}
        if rel["Attributes"]["Target"] != target:
           return {}       
-       
+
        bandwidth = bandwidth + rel["Attributes"]["Bandwidth"]
-          
+
     for alloc in allocation:
        if "Bandwidth" not in alloc["Attributes"]:
           raise Exception("Bandwidth attribute must be specified in Allocation!")
@@ -443,7 +438,7 @@ def link_calc_capacity(resource, allocation, release):
        if alloc["Attributes"]["Target"] != target:
           return {}       
        
-       bandwidth = bandwidth - alloc["Attributes"]["Bandwidth"]             
+       bandwidth = bandwidth - alloc["Attributes"]["Bandwidth"]
        if bandwidth < 0:
           return {}
     
@@ -689,9 +684,6 @@ def delete_all_tenants():
 #
 def update_tenant_bandwidth( links, paths, link_list ):
 
-    init_link_active_tenants( links )
-    update_link_active_tenants( links, link_list )
-    calc_link_weights( links, paths )
     calc_tenant_bandwidth( links, paths )
 
     # XXX slight changes below this point in this function
@@ -711,175 +703,6 @@ def update_tenant_bandwidth( links, paths, link_list ):
         install_rules( sourceMachineID, rateList[ sourceMachineID ] )
 
     return 0
-
-
-#
-# Initialize link weights
-# Create empty jsons
-#
-# link[ linkID ]["Attributes"]["Active"] is a json:
-# { tenantID : [pathID1, pathID2, ...] }
-#
-# Where: pathIDx is a json;
-# pathIDx : {
-#       Weight : xxx
-#       Fraction : xxx
-#       Bandwidth : xxx
-# }
-#
-def init_link_active_tenants( links ):
-
-    for linkID in links:
-        links[ linkID ]["Attributes"]["Active"] = {}
-
-    return 0
-
-#
-#
-#
-def update_link_active_tenants( links, link_list ):
-
-    #
-    # Iterate all tenants
-    #
-    for tenantID in tenantTable:
-
-        #
-        # Iterate all tenant paths
-        #
-        for pathID in tenantTable[ tenantID ]:
-
-            #
-            # Iterate all links in that path
-            #
-            for linkID in link_list[ pathID ]:
-
-                #
-                # Initialize tenant entry for this LINK, if not already set.
-                #
-                if tenantID not in links[ linkID ]["Attributes"]["Active"]:
-                    links[ linkID ]["Attributes"]["Active"][ tenantID ] = {}
-
-                #
-                # Initialize path entry for that tenant.
-                #
-                links[ linkID ]["Attributes"]["Active"][ tenantID ][ pathID ] = {}
-                links[ linkID ]["Attributes"]["Active"][ tenantID ][ pathID ]["Weight"] = -1    # undefined
-                links[ linkID ]["Attributes"]["Active"][ tenantID ][ pathID ]["Fraction"] = -1  # undefined
-                links[ linkID ]["Attributes"]["Active"][ tenantID ][ pathID ]["Bandwidth"] = -1 # undefined
-
-    return 0
-
-
-#
-# Calculate weights
-#
-def calc_link_weights( links, paths ):
-
-    #
-    # Iterate all links
-    #
-    for linkID in links:
-
-        #
-        # Initialize weight json
-        #
-        links[ linkID ]["Attributes"]["Weights"] = {}
-
-        #
-        # Initialize running sum
-        #
-        w_sum = 0
-
-        #
-        # Iterate all tenants on that link
-        #
-        for tenantID in links[ linkID ]["Attributes"]["Active"]:
-
-            #
-            # Iterate all paths of that tenant; first pass
-            # Find out how many machines each machine is talking with
-            # over *THIS LINK* (PS-L).
-            #
-            connections = {}
-
-            for pathID in links[ linkID ]["Attributes"]["Active"][ tenantID ]:
-
-                #
-                # Get source/target
-                #
-                machineList = []
-                machineList.append( paths[ pathID ]["Attributes"]["Source"] )
-                machineList.append( paths[ pathID ]["Attributes"]["Target"] )
-
-                for machine in machineList:
-                    #
-                    # Initialize counters
-                    #
-                    if machine not in connections:
-                        connections[ machine ] = 0
-
-                    #
-                    # Increase counter:
-                    # source communicates with target and vice-versa
-                    #
-                    connections[ machine ] += 1
-
-            #
-            # Iterate all paths of that tenant; second pass
-            # Calculate the actual weights
-            #
-            for pathID in links[ linkID ]["Attributes"]["Active"][ tenantID ]:
-
-                #
-                # Get source/target
-                #
-                source = paths[ pathID ]["Attributes"]["Source"]
-                target = paths[ pathID ]["Attributes"]["Target"]
-
-                #
-                # Calculate weight; FairCloud-L model. (link)
-                #
-                weight = 1.0 / connections[source] + 1.0 / connections[target]
-                w_sum = w_sum + weight
-
-                #
-                # Save to respective json in 'Attributes'
-                #
-                links[ linkID ]["Attributes"]["Active"][ tenantID ][ pathID ]["Weight"] = weight
-
-
-        #
-        # We have calculated the weights of all paths of all tenants over this link.
-        # Re-iterate all tenants on this link.
-        #
-        for tenantID in links[ linkID ]["Attributes"]["Active"]:
-
-            #
-            # Iterate all paths on that link
-            #
-            for pathID in links[ linkID ]["Attributes"]["Active"][ tenantID ]:
-
-                #
-                # Get weight
-                #
-                weight = links[ linkID ]["Attributes"]["Active"][ tenantID ][ pathID ]["Weight"]
-
-                #
-                # Calculate fraction of bandwidth that will be allocated
-                #
-                fraction = 1.0 * weight / w_sum
-                links[ linkID ]["Attributes"]["Active"][ tenantID ][ pathID ]["Fraction"] = fraction
-
-                #
-                # Calculate bandwidth allocated to that path
-                #
-                capacity = links[ linkID ]["Attributes"]["Bandwidth"]
-                allocated = 1.0 * fraction * capacity
-                links[ linkID ]["Attributes"]["Active"][ tenantID ][ pathID ]["Bandwidth"] = allocated
-
-    return 0
-
 
 
 #
