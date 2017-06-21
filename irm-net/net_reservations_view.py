@@ -15,7 +15,7 @@ import uuid
 import json
 from hresman.utils import post
 from operator import itemgetter
-from net_links import link_create_reservation, link_release_reservation, link_check_reservation, faircloud_add_tenant, faircloud_remove_tenant, faircloud_delete_all_tenants
+from net_links import link_create_reservation, link_release_reservation, link_check_reservation, bwadapt_add_tenant, bwadapt_remove_tenant, bwadapt_delete_all_tenants
 import copy
 import logging
 
@@ -156,7 +156,7 @@ class NETReservationsView(ReservationsView):
 
            # FairCloud: add the tenant's machines
            topology = NETResourcesView.Topology
-           faircloud_add_tenant(topology["links"], topology["paths"], topology["link_list"],\
+           bwadapt_add_tenant(topology["links"], topology["paths"], topology["link_list"],\
                    NETReservationsView.LinkReservations, str(resID),\
                    reservedLinkResources)
 
@@ -228,7 +228,7 @@ class NETReservationsView(ReservationsView):
           # Delete the tenant from the FairCloud database
           resID = reservation
           topology = NETResourcesView.Topology
-          faircloud_remove_tenant(topology["links"], topology["paths"], topology["link_list"],\
+          bwadapt_remove_tenant(topology["links"], topology["paths"], topology["link_list"],\
                   NETReservationsView.LinkReservations, str(resID))
 
           for alloc in data:  
@@ -252,7 +252,7 @@ class NETReservationsView(ReservationsView):
        ReservationsView.reservations = {}
 
        # Delete all FairCloud tenants
-       faircloud_delete_all_tenants()
+       bwadapt_delete_all_tenants()
 
        topology = NETResourcesView.Topology                                                     
        for id in copy.copy(NETReservationsView.LinkReservations):

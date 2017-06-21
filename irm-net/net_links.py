@@ -453,7 +453,7 @@ def link_calc_capacity(resource, allocation, release):
 ################################## UTI Stuff - End ####################################
 ################################## API Stuff - Start ##################################
 
-def faircloud_add_tenant (links, paths, link_list, link_res, tenantID, reservedMachineResources):
+def bwadapt_add_tenant (links, paths, link_list, link_res, tenantID, reservedMachineResources):
 
     # Add tenant to database
     add_tenant( tenantID, paths, reservedMachineResources )
@@ -462,7 +462,7 @@ def faircloud_add_tenant (links, paths, link_list, link_res, tenantID, reservedM
     return 0
 
 
-def faircloud_remove_tenant (links, paths, link_list, link_res, tenantID):
+def bwadapt_remove_tenant (links, paths, link_list, link_res, tenantID):
 
     # Find tenant in database and remove
     remove_tenant( tenantID )
@@ -471,7 +471,7 @@ def faircloud_remove_tenant (links, paths, link_list, link_res, tenantID):
     return 0
 
 
-def faircloud_delete_all_tenants():
+def bwadapt_delete_all_tenants():
     delete_all_tenants()
     return 0
 
