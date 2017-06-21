@@ -692,7 +692,10 @@ def update_tenant_bandwidth( links, paths, link_list ):
     init_link_active_tenants( links )
     update_link_active_tenants( links, link_list )
     calc_link_weights( links, paths )
-    calc_tenant_bottleneck( links, paths, link_list )
+    calc_tenant_bandwidth( links, paths )
+
+    # XXX slight changes below this point in this function
+    # faircloud code is decent enough.
 
     #
     # Register IDs in @tenantTable to @rateList
@@ -702,8 +705,7 @@ def update_tenant_bandwidth( links, paths, link_list ):
     register_ID_list( rateList, tenantTable )
 
     #
-    # Commit all bandwidth rates.
-    # TODO this might commit unchanged rates, as well.
+    # TODO no need to re-install the traffic rules;
     #
     for sourceMachineID in rateList:
         install_rules( sourceMachineID, rateList[ sourceMachineID ] )
@@ -883,7 +885,7 @@ def calc_link_weights( links, paths ):
 #
 # Calculate the bottleneck of each path:
 #
-def calc_tenant_bottleneck( links, paths, link_list ):
+def calc_tenant_bandwidth( links, paths ):
 
     #
     # Iterate all active tenants
@@ -891,33 +893,26 @@ def calc_tenant_bottleneck( links, paths, link_list ):
     for tenantID in tenantTable:
 
         #
-        # Iterate all paths of tenant
+        # Iterate all paths of tenant to measure the bandwidth
+        # Measuring at source is enough.
         #
         for pathID in tenantTable[ tenantID ]:
 
-            #
-            # Bottleneck bandwidth
-            # -1 is undefined
-            #
-            bottleneck = -1
+            # Get source/target IDs
+            sourceID = tenantTable[ tenantID ][ pathID ]["SourceID"]
+            targetID = tenantTable[ tenantID ][ pathID ]["TargetID"]
 
             #
-            # Iterate all links in the path
-            # Find allocated
+            # TODO this is the bandwidth that will be measured
+            # SSH to source machine; measure bandwidth
             #
-            for linkID in link_list[ pathID ]:
-
-                bandwidth = links[ linkID ]["Attributes"]["Active"][ tenantID ][ pathID ]["Bandwidth"]
-
-                if bottleneck < 0 :
-                    bottleneck = bandwidth
-                elif bottleneck > bandwidth:
-                    bottleneck = bandwidth
+            measuredBandwidth = 42
 
             #
-            # After iterating all links in the path, set the bottleneck
+            # Set the path's consumed bandwidth based on the measurements
+            # A minimum bandwidth is always guaranteed.
             #
-            tenantTable[ tenantID ][ pathID ]["Bandwidth"] = bottleneck
+            tenantTable[ tenantID ][ pathID ]["Bandwidth"] = measuredBandwidth
 
     return 0
 
@@ -978,7 +973,6 @@ def register_ID_rate( rateList, sourceMachineID, targetMachineID, bandwidth ):
     record = {}
     record["TargetID"] = targetMachineID
     record["Rate"] = bandwidth
-    record["dirty"] = 1 # TODO remove; not used
 
     #
     # Initialize list of records
