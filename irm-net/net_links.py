@@ -713,6 +713,8 @@ def calc_tenant_bandwidth( links, paths, link_list ):
             #
             # TODO this is the bandwidth that will be measured
             # SSH to source machine; measure bandwidth
+            # Note: MEASURED bandwidth is how much we are consuming
+            # 'Bandwidth' attribute refers to the AVAILABLE bandwidth.
             #
             measuredBandwidth = 42
 
