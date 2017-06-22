@@ -834,7 +834,7 @@ def path_release_bandwidth( pathID, link_list, bandwidth ):
         # Add/subtract to/from "RealBandwidth"; it may be negative.
         #
         for linkID in link_list[ pathID ]:
-            links[ linkID ]["Attributes"]["RealBandwidth"] =
+            links[ linkID ]["Attributes"]["RealBandwidth"] = \
                 links[ linkID ]["Attributes"]["RealBandwidth"] + bandwidth
 
             #
