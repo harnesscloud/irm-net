@@ -748,7 +748,7 @@ def calc_tenant_bandwidth( links, paths, link_list ):
             # The 'UsedBandwidth' in the tenant entry refers to how much it's being currently used;
             # thus, we can infer how much more/less we need.
             #
-            measuredBandwidth = 42
+            measuredBandwidth = measure_bandwidth( sourceID, targetID )
 
             # Never exceed the maximum requested bandwidth, in case more was measured
             # due to an error.
@@ -863,6 +863,28 @@ def path_reserve_bandwidth( pathID, link_list, bandwidth ):
 
 ################################## Lib Stuff - End ####################################
 ################################## Traffic Rules - Start ##############################
+
+def measure_bandwidth( sourceID, targetID ):
+
+    measuredBandwidth = -1
+
+    #
+    # Retrieve conpaasIP if not already there.
+    # We assume that it does not change.
+    #
+    global FIP_CONPAAS_DIRECTOR
+    if FIP_CONPAAS_DIRECTOR is None :
+        FIP_CONPAAS_DIRECTOR = get_public_IP_from_ID( 'conpaas-director' )
+
+    #
+    # Use a local variable now
+    #
+    conpaasIP = FIP_CONPAAS_DIRECTOR
+    if conpaasIP is None:
+        raise Exception("Could not retrieve Public IP of conpaas-director")
+
+    return measuredBandwidth
+
 
 #
 # TODO close processes
