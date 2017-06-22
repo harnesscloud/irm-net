@@ -819,6 +819,11 @@ def path_check_bandwidth( pathID, link_list, bandwidth ):
 #   If @bandwidth is zero, nothing happens.
 #   If @bandwidth is negative, bandwidth is reserved, instead.
 #
+#   'RealBandwidth' attribute may be negative, if we are oversubscribing.
+#   'Bandwidth' attribute is the reported bandwidth, used to determine
+#   if we can create a new reservation; set to 'RealBandwidth',
+#   unless the latter is negative, in which case it's set to zero.
+#
 def path_release_bandwidth( pathID, link_list, bandwidth ):
 
     if bandwidth != 0:
@@ -826,9 +831,21 @@ def path_release_bandwidth( pathID, link_list, bandwidth ):
         #
         # Iterate all links in this path
         # Reserve/Release bandwidth on the links
+        # Add/subtract to/from "RealBandwidth"; it may be negative.
         #
         for linkID in link_list[ pathID ]:
-            links[ linkID ]["Attributes"]["Bandwidth"] = links[ linkID ]["Attributes"]["Bandwidth"] + bandwidth
+            links[ linkID ]["Attributes"]["RealBandwidth"] =
+                links[ linkID ]["Attributes"]["RealBandwidth"] + bandwidth
+
+            #
+            # Is the resulting bandwidth negative?
+            # If so, report 'zero'; otherwise, report the 'real' bandwidth.
+            #
+            realBandwidth = links[ linkID ]["Attributes"]["RealBandwidth"]
+            if realBandwidth <= 0 :
+                links[ linkID ]["Attributes"]["Bandwidth"] = 0
+            else
+                links[ linkID ]["Attributes"]["Bandwidth"] = realBandwidth
 
     return 0
 
