@@ -678,22 +678,7 @@ def delete_all_tenants():
 def update_tenant_bandwidth( links, paths, link_list ):
 
     calc_tenant_bandwidth( links, paths, link_list )
-
-    # XXX slight changes below this point in this function
-    # faircloud code is decent enough.
-
-    #
-    # Register IDs in @tenantTable to @rateList
-    # in order to propagate the rules to the actual containers.
-    #
-    rateList = {}
-    register_ID_list( rateList, tenantTable )
-
-    #
-    # TODO no need to re-install the traffic rules;
-    #
-    for sourceMachineID in rateList:
-        install_rules( sourceMachineID, rateList[ sourceMachineID ] )
+    calculate_attribs( paths, link_list, links )
 
     return 0
 
@@ -742,48 +727,6 @@ def calc_tenant_bandwidth( links, paths, link_list ):
             # A minimum bandwidth is always guaranteed.
             #
             tenantTable[ tenantID ][ pathID ]["Bandwidth"] = measuredBandwidth
-
-    return 0
-
-
-#
-# Create Rate Limit list
-#
-def register_ID_list( rateList, tenants ):
-
-    for tenantID in tenants:
-        for pathID in tenants[ tenantID ]:
-            sourceMachineID = tenants[ tenantID ][ pathID ]["SourceID"]
-            targetMachineID = tenants[ tenantID ][ pathID ]["TargetID"]
-            bandwidth = tenants[ tenantID ][ pathID ]["Bandwidth"]
-
-            register_ID_rate( rateList, sourceMachineID, targetMachineID, bandwidth )
-            register_ID_rate( rateList, targetMachineID, sourceMachineID, bandwidth )
-
-    return 0
-
-
-#
-# Deploy bandwidth rate limit
-#
-def deploy_tenant_ratelimit( tenants, paths ):
-
-    #
-    # Iterate all active tenants
-    #
-    for tenantID in tenants:
-
-        #
-        # Iterate all paths
-        #
-        for pathID in tenants[ tenantID ]:
-
-            #
-            # Get source/target and bandwidth cap
-            #
-            source = paths[ pathID ]["Attributes"]["Source"]
-            target = paths[ pathID ]["Attributes"]["Target"]
-
 
     return 0
 
@@ -864,139 +807,8 @@ def path_reserve_bandwidth( pathID, link_list, bandwidth ):
     return path_release_bandwidth( pathID, link_list, (-1)*bandwidth )
 
 
-#
-# Function:
-#   register_ID_rate
-# Purpose:
-#   Register future bandwidth modification to @rateList.
-#
-def register_ID_rate( rateList, sourceMachineID, targetMachineID, bandwidth ):
-
-    record = {}
-    record["TargetID"] = targetMachineID
-    record["Rate"] = bandwidth
-
-    #
-    # Initialize list of records
-    # if not already there.
-    #
-    if sourceMachineID not in rateList:
-        rateList[ sourceMachineID ] = []
-
-    #
-    # Append record to rateList
-    #
-    rateList[ sourceMachineID ].append( record )
-
-    return 0
-
-
-#
-#
-# Purpose:
-#   Installs bandwidth rules found in @bandwidthList
-#   on machine @sourceMachineID.
-#   Overrides any previous rules.
-#
-def install_rules( sourceMachineID, bandwidthList ):
-
-    # Get private IP
-    sourceIP = get_private_IP_from_ID( sourceMachineID )
-    if sourceIP == None:
-        raise Exception("Could not find Private IP for source machine " + sourceMachineID )
-
-    #
-    # Craft bandwidth requests
-    # @bandwidthList is a list of jsons:
-    # { 'TargetID' : xxx, 'Rate' : xxx }
-    #
-    bwReq = []
-    for compoundRequest in bandwidthList:
-
-        if "TargetID" not in compoundRequest:
-            raise Exception("'TargetID' not found in bandwidth request")
-        elif "Rate" not in compoundRequest:
-            raise Exception("'Rate' not found in bandwidth request")
-
-        targetMachineID = compoundRequest["TargetID"]
-        rate = compoundRequest["Rate"]
-
-        #
-        # Get target IP
-        #
-        targetIP = get_private_IP_from_ID( targetMachineID )
-        if targetIP == None:
-            raise Exception("Could not find Private IP for target machine " + targetMachineID)
-
-        bwReq.append({'Target': targetIP, 'Rate': str(rate)+"mbit"})
-
-
-    #
-    # Propagate the rules
-    #
-    propagate_rules( sourceIP, bwReq )
-
-    return 0
-
-
-#
-#
-# @bwRatesString    list of jsons with traffic rules:
-#                   e.g. [{"Target":"10.158.0.3","Rate":"100mbit"}, {...}]'
-#
-def propagate_rules( sourceMachineIP, bwRatesString ):
-
-    #
-    # TC Installation Base File
-    # Read it; replace the placeholders.
-    #
-    tcBaseFile = "tcinstall-base.sh"
-    file_ = open(irm_net_path + "/../" + tcBaseFile,'r')
-
-    tcBaseData = file_.read()
-    file_.close()
-    tcCommand = tcBaseData.replace('__BWRATESTRING',json.JSONEncoder().encode(bwRatesString))
-
-    #
-    # Retrieve conpaasIP if not already there.
-    # We assume that it does not change.
-    # TODO retrieve again if cannot connet
-    #
-    global FIP_CONPAAS_DIRECTOR
-    if FIP_CONPAAS_DIRECTOR is None :
-        FIP_CONPAAS_DIRECTOR = get_public_IP_from_ID( 'conpaas-director' )
-
-    #
-    # Use a local variable now
-    #
-    conpaasIP = FIP_CONPAAS_DIRECTOR
-    if conpaasIP is None:
-        raise Exception("Could not retrieve Public IP of conpaas-director")
-
-    #
-    # Craft remote command @ conpaas-director
-    #
-    conpaasCommand = 'ssh root@' + sourceMachineIP + ' bash -s << EOF\n' + tcCommand + '\nEOF'
-
-    #
-    # Connect to conpaas-director
-    # TODO timeout?
-    #
-    try:
-        client = paramiko.SSHClient()
-        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        client.connect(conpaasIP, username='root')
-    except paramiko.AuthenticationException:
-        raise Exception("Authentication failed when connecting to conpaas-director")
-
-    stdin, stdout, stderr = client.exec_command( conpaasCommand )
-    client.close()
-
-    return 0
-
-
 ################################## Lib Stuff - End ####################################
-################################## Old Lib Stuff - Start ##############################
+################################## Traffic Rules - Start ##############################
 
 #
 # TODO close processes
@@ -1196,7 +1008,7 @@ def get_IP_from_ID( entryID, regexIP ):
     return matches[0]
 
 
-################################## Old Lib Stuff - End ################################
+################################## Traffic Rules - End ################################
 
 #
 # Initialize config variables
