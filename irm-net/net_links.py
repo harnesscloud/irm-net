@@ -16,6 +16,9 @@ import itertools    # create combinations from list
 # Floating IP of conpaas-director
 FIP_CONPAAS_DIRECTOR = None
 
+# MINIMUM guaranteed bandwidth in Mbit/sec
+MIN_BANDWIDTH_MBPS = 10
+
 
 ################################## CLI Stuff - Start ##################################
 
@@ -753,6 +756,13 @@ def calc_tenant_bandwidth( links, paths, link_list ):
             maxUsedBandwidth = tenantTable[ tenantID ][ pathID ]["MaxUsedBandwidth"]
             if measuredBandwidth > maxUsedBandwidth:
                 measuredBandwidth = maxUsedBandwidth
+
+            # If below the minimum guaranteed bandwidth,
+            # set it to that.
+            # Exception: if the user initially requested less than the
+            # minimum guaranteed.
+            if maxUsedBandwidth > MIN_BANDWIDTH_MBPS and measuredBandwidth < MIN_BANDWIDTH_MBPS:
+                measuredBandwidth = MIN_BANDWIDTH_MBPS
 
             #
             # Calculate the bandwidth we have to "release":
