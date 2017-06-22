@@ -750,6 +750,10 @@ def calc_tenant_bandwidth( links, paths, link_list ):
             #
             measuredBandwidth = measure_bandwidth( sourceID, targetID )
 
+            # Skip if negative bandwidth (error) was returned.
+            if measuredBandwidth < 0:
+                continue
+
             # Never exceed the maximum requested bandwidth, in case more was measured
             # due to an error.
             # TODO raise a warning?
@@ -774,6 +778,8 @@ def calc_tenant_bandwidth( links, paths, link_list ):
             oldBandwidth = tenantTable[ tenantID ][ pathID ]["UsedBandwidth"]
             releasedBandwidth = oldBandwidth - measuredBandwidth
 
+            # This is the actual command that will update the path table
+            # and, subsequently, the CRS.
             path_release_bandwidth( pathID, link_list, releasedBandwidth )
 
             #
@@ -877,9 +883,7 @@ def measure_bandwidth( sourceID, targetID ):
     sourcePrivateIP = get_private_IP_from_ID( sourceID )
     targetPrivateIP = get_private_IP_from_ID( targetID )
 
-    #
     # Connect to the source host
-    #
     try:
         client = paramiko.SSHClient()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -887,6 +891,12 @@ def measure_bandwidth( sourceID, targetID ):
     except paramiko.AuthenticationException:
         raise Exception("Authentication failed when connecting to " % sourcePublicIP)
 
+    #
+    # Craft the bwperf command to execute.
+    # We assume that it is already installed in the client.
+    # Exit if not.
+    # TODO sftp 'bwperf' to the container.
+    #
     bwperfCommand="IF=$(/sbin/ifconfig | grep HWaddr | grep -v eth0 | awk '{print $1}'); " \
             + "/root/bwperf -i $IF " \
             + "-f 'host " + sourcePrivateIP + " and host " + targetPrivateIP + "' " \
@@ -902,7 +912,7 @@ def measure_bandwidth( sourceID, targetID ):
     while (retry > 0) and len(error) and re.search("Connection refused", error[0]) > 0:
         time.sleep(1)
         retry = retry - 1
-        stdin, stdout, stderr = client.exec_command( conpaasCommand )
+        stdin, stdout, stderr = client.exec_command( bwperfCommand )
         error = stderr.readlines()
 
     # Read the output
@@ -914,6 +924,11 @@ def measure_bandwidth( sourceID, targetID ):
     # Abort if failed
     if ( retry <= 0 ):
         raise Exception("Could not connect to " + sourcePublicIP)
+
+    # Any other error? (e.g., bwperf not found)
+    # Just exit.
+    if len(error):
+        return -1
 
     return measuredBandwidth
 
