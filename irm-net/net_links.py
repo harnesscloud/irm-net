@@ -844,7 +844,7 @@ def path_release_bandwidth( pathID, link_list, bandwidth ):
             realBandwidth = links[ linkID ]["Attributes"]["RealBandwidth"]
             if realBandwidth <= 0 :
                 links[ linkID ]["Attributes"]["Bandwidth"] = 0
-            else
+            else :
                 links[ linkID ]["Attributes"]["Bandwidth"] = realBandwidth
 
     return 0
