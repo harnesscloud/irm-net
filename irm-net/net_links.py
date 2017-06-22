@@ -19,7 +19,6 @@ FIP_CONPAAS_DIRECTOR = None
 
 ################################## CLI Stuff - Start ##################################
 
-
 #
 # Config and format for logging messages
 #
@@ -68,13 +67,13 @@ def load_spec_nodes(mchn):
    curr = os.path.dirname(os.path.abspath(__file__))
    with open(curr + '/net.json') as data_file:    
       rules = json.load(data_file)
-   
+
    inf = sys.maxint
-    
+
    spec_nodes = { "DC-01234": { "DC": { "LT":0, "BW":inf }, "LT": 0, "BW":inf}, "LT": 0, "BW": inf}
-   
+
    dc = spec_nodes["DC-01234"]["DC"]
-   
+
    clusters = {}
    for m in mchn:
       rule = {}
@@ -84,12 +83,12 @@ def load_spec_nodes(mchn):
             break
       if rule == {} or 'cluster' not in rule:
          raise Exception("IRM-NET: cannot find network information about machine: %s!" % m)
-      
+
       if r['cluster'] not in clusters:
          clusters[r['cluster']] = {}
       clusters[r['cluster']][m] = {}
-    
- 
+
+
    for c in clusters:
       rule = {}
       for r in rules:
@@ -98,7 +97,7 @@ def load_spec_nodes(mchn):
             break
       bw = -1
       latency = 0
-      
+
       if rule != {}:
          if 'bandwidth' in rule:
             bw = rule['bandwidth']
@@ -106,7 +105,7 @@ def load_spec_nodes(mchn):
             latency = rule['latency']
       if bw == -1:
          bw = inf
-      
+
       clusters[c]['BW'] = bw
       clusters[c]['LT'] = latency
 
@@ -114,7 +113,7 @@ def load_spec_nodes(mchn):
    for r in rules:    
       if r['name'] == 'DC':
          dc_rule = r
-            
+
    #print ":::::::::::>", dc_rule
    if dc_rule != {}:
       if 'bandwidth' in dc_rule:
@@ -129,10 +128,9 @@ def load_spec_nodes(mchn):
    #print ":::::::::::::>", json.dumps(spec_nodes, indent=4)   
    return spec_nodes
 
-   
-     
+
 def link_gen_topology(machines):
-   
+
    mchn = { k:{} for k,v in machines.items() }
 
    load_spec_nodes(mchn)
@@ -171,6 +169,7 @@ def link_gen_topology(machines):
    paths, link_list, constraint_list = gen_paths(links, nodes)
    return { "links": links, "nodes": nodes, "paths": paths, "link_list": link_list, "constraint_list": constraint_list }
 
+
 def process_spec(links, nodes, source, spec_nodes, level, n, context):
     if spec_nodes == {}:
        nodes[n[0]] = { "Datacenter": context[0], "Cluster": context[1], "Switch": context[2], "ID": source }
@@ -180,7 +179,7 @@ def process_spec(links, nodes, source, spec_nodes, level, n, context):
        latency = spec_nodes['LT']
     else:
        raise Exception("Cannot determine latency: %s, level: %d!" % (source, level))
-    
+
     if 'BW' in spec_nodes:
        bandwidth = spec_nodes['BW']      
     else:
@@ -196,30 +195,31 @@ def process_spec(links, nodes, source, spec_nodes, level, n, context):
           if level < len(context):
              context[level] = target
           process_spec(links, nodes, target, spec_nodes[target], level+1, n, context)
-             
+
+
 def gen_topology(spec_nodes):
     # Generate nodes and links
     links = { }
     nodes = { }
     context = ["", "", ""]
-    
+
     process_spec(links, nodes, "root", spec_nodes, 0, [0], context)
     #print "LINKS=", json.dumps(links, indent=4) 
     #print "NODES=", json.dumps(nodes, indent=4)
 
     return links, nodes
-    
-    
+
+
 def gen_paths(links, nodes):
 
     paths = { }
     link_list = { }
     z = 0
-    
+
     # Generate link lists for each path
     for i in range( len(nodes) ):
         for j in range( i+1, len(nodes) ):
-             
+
             # Generate PathId
             pathID = "P" + `z`
             z  = z + 1
@@ -237,7 +237,7 @@ def gen_paths(links, nodes):
             c2 = nodes[j]["Cluster"]
             s1 = nodes[i]["Switch"]
             s2 = nodes[j]["Switch"]
-            
+
             # Assume that nodes are:
             # - Under the same DC
             # - Under the same Cluster
@@ -250,7 +250,7 @@ def gen_paths(links, nodes):
                 intraDatacenter = False
                 intraCluster    = False
                 intraSwitch     = False
-                
+
             elif ( c1 != c2 ):
                 intraCluster = False
                 intraSwitch  = False
@@ -312,18 +312,19 @@ def gen_paths(links, nodes):
             paths[ pathID ]["Attributes"]["Latency"]   = 0
             paths[ pathID ]["Attributes"]["Source"] = nodes[i]["ID"]
             paths[ pathID ]["Attributes"]["Target"] =  nodes[j]["ID"]
-    
+
     #print "paths :::>", json.dumps(paths, indent=4) 
-    
+
     #print "link_list :::>", json.dumps(link_list, indent=4)          
     # Calculate bandwidth/latency
     calculate_attribs(paths, link_list, links)
-    
+
     # Generate constraints
     constraint_list = gen_constraints(link_list, links)
 
     return paths, link_list, constraint_list
-    
+
+
 def calculate_attribs(paths, link_list, links):
     for id in paths:
          # Calculate PATH latency & BW
@@ -343,6 +344,7 @@ def calculate_attribs(paths, link_list, links):
 
          paths[id]["Attributes"]["Bandwidth"] = bandwidth
          paths[id]["Attributes"]["Latency"]   = "%.2f" % latency
+
 
 def gen_constraints(link_list, links):
 
@@ -386,7 +388,6 @@ def gen_constraints(link_list, links):
 
             inequality = inequality + pathID
 
-
         # Finally, add the bandwidth constraint, if there are any paths
         if ( inequality != "" ):
             inequality = inequality + " <= " + `constraints[constraintID]["Bandwidth"]`
@@ -394,11 +395,11 @@ def gen_constraints(link_list, links):
         else:
             del constraint_list[cID]
 
-
     return constraint_list
 
+
 def link_calc_capacity(resource, allocation, release):
-    
+
     if "Bandwidth" not in resource["Attributes"]:
        raise Exception("Bandwidth attribute must be specified in Resource!")
     if "Source" not in resource["Attributes"]:
@@ -418,7 +419,7 @@ def link_calc_capacity(resource, allocation, release):
           raise Exception("Source attribute must be specified in Release!")
        if "Target" not in rel["Attributes"]:
           raise Exception("Target attribute must be specified in Release!")   
-       
+
        if rel["Attributes"]["Source"] != source:
           return {}
        if rel["Attributes"]["Target"] != target:
@@ -433,16 +434,16 @@ def link_calc_capacity(resource, allocation, release):
           raise Exception("Source attribute must be specified in Allocation!")
        if "Target" not in alloc["Attributes"]:
           raise Exception("Target attribute must be specified in Allocation!")
-          
+
        if alloc["Attributes"]["Source"] != source:
           return {}
        if alloc["Attributes"]["Target"] != target:
           return {}       
-       
+
        bandwidth = bandwidth - alloc["Attributes"]["Bandwidth"]
        if bandwidth < 0:
           return {}
-    
+
     return {"Resource": {"Type": "Link", "Attributes": { "Source": source, "Target": target, "Bandwidth": bandwidth } }} 
 
 
@@ -454,7 +455,6 @@ def bwadapt_add_tenant (links, paths, link_list, link_res, tenantID, reservedMac
     # Add tenant to database
     add_tenant( tenantID, paths, reservedMachineResources )
     update_tenant_bandwidth( links, paths, link_list )
-
     return 0
 
 
@@ -463,7 +463,6 @@ def bwadapt_remove_tenant (links, paths, link_list, link_res, tenantID):
     # Find tenant in database and remove
     remove_tenant( tenantID )
     update_tenant_bandwidth( links, paths, link_list )
-
     return 0
 
 
@@ -533,7 +532,7 @@ def link_create_reservation (links, paths, link_list, link_res, req, reservedMac
     # on a bottleneck link
     #
     calculate_attribs(paths, link_list, links)
-    install_traffic_rules( paths[pathID]["Attributes"]["Source"], \
+    install_traffic_rules( paths[pathID]["Attributes"]["Source"],
             paths[pathID]["Attributes"]["Target"],
             bandwidth, reservedMachineResources )
 
@@ -542,10 +541,9 @@ def link_create_reservation (links, paths, link_list, link_res, req, reservedMac
 def link_release_reservation (links, paths, link_list, link_res, resIDs):
 
     for resID in resIDs:
-    
         if resID not in link_res:
            raise Exception("Cannot find reservation ID: %s" % resID)
-        
+
         pathID    = link_res[ resID ]["pathID"]
         bandwidth = link_res[ resID ]["bandwidth"]
 
@@ -558,7 +556,6 @@ def link_release_reservation (links, paths, link_list, link_res, resIDs):
         # Remove reservation from list
         del( link_res[resID] )
 
-
     calculate_attribs(paths, link_list, links)
 
     return { }
@@ -566,12 +563,11 @@ def link_release_reservation (links, paths, link_list, link_res, resIDs):
 def link_check_reservation (link_res, resIDs):
     result = { }
     for resID in resIDs:
-    
         if resID not in link_res:
            raise Exception("Cannot find reservation ID: %s" % resID)
-           
+
         result[resID] = { "Ready": "True", "Address": ["virtual-link://%s" % resID] }
-        
+
     return { "Instances": result }
 
 
