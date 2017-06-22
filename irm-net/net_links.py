@@ -677,7 +677,7 @@ def delete_all_tenants():
 #
 def update_tenant_bandwidth( links, paths, link_list ):
 
-    calc_tenant_bandwidth( links, paths )
+    calc_tenant_bandwidth( links, paths, link_list )
 
     # XXX slight changes below this point in this function
     # faircloud code is decent enough.
@@ -701,7 +701,7 @@ def update_tenant_bandwidth( links, paths, link_list ):
 #
 # Calculate the bottleneck of each path:
 #
-def calc_tenant_bandwidth( links, paths ):
+def calc_tenant_bandwidth( links, paths, link_list ):
 
     #
     # Iterate all active tenants
@@ -714,6 +714,13 @@ def calc_tenant_bandwidth( links, paths ):
         #
         for pathID in tenantTable[ tenantID ]:
 
+            #
+            # Original bandwidth;
+            # may be the requested bandwidth, the last measured,
+            # or the minimum guaranteed
+            #
+            originalBandwidth = tenantTable[ tenantID ][ pathID ]["Bandwidth"]
+
             # Get source/target IDs
             sourceID = tenantTable[ tenantID ][ pathID ]["SourceID"]
             targetID = tenantTable[ tenantID ][ pathID ]["TargetID"]
@@ -723,6 +730,12 @@ def calc_tenant_bandwidth( links, paths ):
             # SSH to source machine; measure bandwidth
             #
             measuredBandwidth = 42
+
+            #
+            # Consuming more or less?
+            #
+            diffBandwidth = measuredBandwidth - originalBandwidth
+            path_reserve_bandwidth( pathID, link_list, diffBandwidth )
 
             #
             # Set the path's consumed bandwidth based on the measurements
