@@ -734,13 +734,6 @@ def calc_tenant_bandwidth( links, paths, link_list ):
         #
         for pathID in tenantTable[ tenantID ]:
 
-            #
-            # Original bandwidth;
-            # may be the requested bandwidth, the last measured,
-            # or the minimum guaranteed
-            #
-            originalBandwidth = tenantTable[ tenantID ][ pathID ]["Bandwidth"]
-
             # Get source/target IDs
             sourceID = tenantTable[ tenantID ][ pathID ]["SourceID"]
             targetID = tenantTable[ tenantID ][ pathID ]["TargetID"]
@@ -749,21 +742,35 @@ def calc_tenant_bandwidth( links, paths, link_list ):
             # TODO this is the bandwidth that will be measured
             # SSH to source machine; measure bandwidth
             # Note: MEASURED bandwidth is how much we are consuming
-            # 'Bandwidth' attribute refers to the AVAILABLE bandwidth.
+            # The 'UsedBandwidth' in the tenant entry refers to how much it's being currently used;
+            # thus, we can infer how much more/less we need.
             #
             measuredBandwidth = 42
 
+            # Never exceed the maximum requested bandwidth, in case more was measured
+            # due to an error.
+            # TODO raise a warning?
+            maxUsedBandwidth = tenantTable[ tenantID ][ pathID ]["MaxUsedBandwidth"]
+            if measuredBandwidth > maxUsedBandwidth:
+                measuredBandwidth = maxUsedBandwidth
+
             #
-            # Consuming more or less?
+            # Calculate the bandwidth we have to "release":
+            # diff = before - after > 0
+            # If diff < 0, then we reserve.
+            # NO sanity check in case we have to reserve bandwidth;
+            # check the @path_release_bandwidth comments.
             #
-            diffBandwidth = measuredBandwidth - originalBandwidth
-            path_reserve_bandwidth( pathID, link_list, diffBandwidth )
+            oldBandwidth = tenantTable[ tenantID ][ pathID ]["UsedBandwidth"]
+            releasedBandwidth = oldBandwidth - measuredBandwidth
+
+            path_release_bandwidth( pathID, link_list, releasedBandwidth )
 
             #
             # Set the path's consumed bandwidth based on the measurements
             # A minimum bandwidth is always guaranteed.
             #
-            tenantTable[ tenantID ][ pathID ]["Bandwidth"] = measuredBandwidth
+            tenantTable[ tenantID ][ pathID ]["UsedBandwidth"] = measuredBandwidth
 
     return 0
 
