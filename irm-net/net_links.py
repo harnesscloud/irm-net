@@ -642,8 +642,8 @@ def add_tenant( tenantID, paths, reservedMachineResources, reservedLinkResources
             tmpSourceHost = linkResource["Attributes"]["Source"]
             tmpTargetHost = linkResource["Attributes"]["Target"]
 
-            if ((tmpSourceHost == sourceHost) && (tmpTargetHost == targetHost))
-                    || ((tmpSourceHost == targetHost) && (tmpTargetHost == sourceHost)):
+            if ((tmpSourceHost == sourceHost) and (tmpTargetHost == targetHost))
+                    or ((tmpSourceHost == targetHost) and (tmpTargetHost == sourceHost)):
 
                 requestedBandwidth = linkResource["Attributes"]["Bandwidth"]
                 break
