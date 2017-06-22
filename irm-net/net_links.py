@@ -514,17 +514,9 @@ def link_create_reservation (links, paths, link_list, link_res, req, reservedMac
        raise Exception("Invalid bandwidth %.2f requested!" % bandwidth)
 
     #
-    # Sanity check: there is enough bandwidth in each link
+    # Reserve the bandwidth
     #
-    for linkID in link_list[ pathID ]:
-       if bandwidth > links[ linkID ]["Attributes"]["Bandwidth"]:
-          raise Exception("Not enough bandwidth (%.2f) in path: %s" % (bandwidth, pathID))
-
-    #
-    # "Reserve" bandwidth on the links
-    #
-    for linkID in link_list[ pathID ]:      
-       links[ linkID ]["Attributes"]["Bandwidth"] = links[ linkID ]["Attributes"]["Bandwidth"] - bandwidth 
+    path_reserve_bandwidth( pathID, link_list, bandwidth )
 
     #
     # Create the reservation ID
@@ -553,10 +545,11 @@ def link_release_reservation (links, paths, link_list, link_res, resIDs):
         pathID    = link_res[ resID ]["pathID"]
         bandwidth = link_res[ resID ]["bandwidth"]
 
-        # Iterate all physical links within the path-resource
-        # Add back the released bandwidth
-        for linkID in link_list[ pathID ]:
-            links[ linkID ]["Attributes"]["Bandwidth"] = links[ linkID ]["Attributes"]["Bandwidth"] + bandwidth
+        #
+        # Release the bandwidth
+        # from that path.
+        #
+        path_release_bandwidth( pathID, link_list, bandwidth )
 
         # Remove reservation from list
         del( link_res[resID] )
@@ -784,6 +777,57 @@ def deploy_tenant_ratelimit( tenants, paths ):
 
 ################################## Fair Stuff - End ####################################
 ################################## Lib Stuff  - Start ##################################
+
+#
+# Function:
+#   release_bandwidth
+# Purpose:
+#   Release bandwidth from a given path;
+#   iterates all links and releases the appropriate bandwidth.
+#   If @bandwidth is zero, nothing happens.
+#   If @bandwidth is negative, bandwidth is reserved, instead.
+#
+def path_release_bandwidth( pathID, link_list, bandwidth ):
+
+    if bandwidth != 0:
+
+        #
+        # Iterate all links in this path
+        #
+        for linkID in link_list[ pathID ]:
+
+            #
+            # If negative: reserve;
+            # Sanity check on links whether we have enough bandwidth
+            # or not.
+            #
+            if bandwidth < 0:
+                bandwidth_abs = (-1) * bandwidth
+                if bandwidth_abs > links[ linkID ]["Attributes"]["Bandwidth"]:
+                    raise Exception("Not enough bandwidth (%.2f) in path: %s" % (bandwidth_abs, pathID))
+
+            #
+            # Reserve/Release bandwidth on the links
+            #
+            links[ linkID ]["Attributes"]["Bandwidth"] = links[ linkID ]["Attributes"]["Bandwidth"] + bandwidth
+
+
+    return 0
+
+
+#
+# Function:
+#   reserve_bandwidth
+# Purpose:
+#   Reserve bandwidth from a given path;
+#   iterates all links and reserves the appropriate bandwidth.
+#   Calls @path_release_bandwidth with (-1) * @bandwidth
+#   If @bandwidth is zero, nothing happens.
+#   If @bandwidth is negative, bandwidth is released, instead.
+#
+def path_reserve_bandwidth( pathID, link_list, bandwidth ):
+    return path_release_bandwidth( pathID, link_list, (-1)*bandwidth )
+
 
 #
 # Function:
