@@ -450,10 +450,11 @@ def link_calc_capacity(resource, allocation, release):
 ################################## UTI Stuff - End ####################################
 ################################## API Stuff - Start ##################################
 
-def bwadapt_add_tenant (links, paths, link_list, link_res, tenantID, reservedMachineResources):
+def bwadapt_add_tenant (links, paths, link_list, link_res, tenantID,
+        reservedMachineResources, reservedLinkResources ):
 
     # Add tenant to database
-    add_tenant( tenantID, paths, reservedMachineResources )
+    add_tenant( tenantID, paths, reservedMachineResources, reservedLinkResources )
     update_tenant_bandwidth( links, paths, link_list )
     return 0
 
@@ -583,7 +584,7 @@ tenantTable={}
 #
 # Add tenant in @tenantTable
 #
-def add_tenant( tenantID, paths, reservedMachineResources ):
+def add_tenant( tenantID, paths, reservedMachineResources, reservedLinkResources ):
 
     #
     # Initialize tenant json
@@ -599,10 +600,15 @@ def add_tenant( tenantID, paths, reservedMachineResources ):
     combinationList = list( itertools.combinations(reservedMachineResources, 2) )
 
     # Iterate all pairs
+    # We will register within the tenant's record:
+    # - Every pathID; for each pathID:
+    # -- sourceID
+    # -- targetID
+    # -- used Bandwidth
     for pair in combinationList:
 
-        source = pair[0]["Host"]
-        target = pair[1]["Host"]
+        sourceHost = pair[0]["Host"]
+        targetHost = pair[1]["Host"]
 
         #
         # Iterate all paths to find the corresponding pathID
@@ -610,18 +616,40 @@ def add_tenant( tenantID, paths, reservedMachineResources ):
         pathID = None
         for p in paths:
 
-            if (paths[p]["Attributes"]["Source"] == source) and \
-                    (paths[p]["Attributes"]["Target"] == target):
+            if (paths[p]["Attributes"]["Source"] == sourceHost) and \
+                    (paths[p]["Attributes"]["Target"] == targetHost):
                     pathID = p
                     break
 
-            elif (paths[p]["Attributes"]["Source"] == target) and \
-                    (paths[p]["Attributes"]["Target"] == source):
+            elif (paths[p]["Attributes"]["Source"] == targetHost) and \
+                    (paths[p]["Attributes"]["Target"] == sourceHost):
                     pathID = p
                     break
 
         if pathID == None:
-            raise Exception("Cannot find a path with source: %s and target: %s" % (source,target))
+            raise Exception("Cannot find a path with source: %s and target: %s" % (sourceHost,targetHost))
+
+        #
+        # Iterate all reserved link resources
+        # to find the requested bandwidth.
+        # Negative bandwidth implies undefined.
+        # FIXME assuming that no two paths overlap,
+        # i.e., the tenant has not made two virtual path reservations
+        # across the SAME path.
+        #
+        requestedBandwidth = -1
+        for linkResource in reservedLinkResources:
+            tmpSourceHost = linkResource["Attributes"]["Source"]
+            tmpTargetHost = linkResource["Attributes"]["Target"]
+
+            if ((tmpSourceHost == sourceHost) && (tmpTargetHost == targetHost))
+                    || ((tmpSourceHost == targetHost) && (tmpTargetHost == sourceHost)):
+
+                requestedBandwidth = linkResource["Attributes"]["Bandwidth"]
+                break
+
+        if requestedBandwidth < 0:
+            raise Exception("Could not find requested bandwidth for path " % pathID)
 
         #
         # Initialize path json.
@@ -629,8 +657,15 @@ def add_tenant( tenantID, paths, reservedMachineResources ):
         # Store ID values of machines.
         #
         tenantTable[ tenantID ][ pathID ] = {}
-        tenantTable[ tenantID ][ pathID ]["Bandwidth"] = -1  # undefined
+        tenantTable[ tenantID ][ pathID ]["UsedBandwidth"] = requestedBandwidth
+        tenantTable[ tenantID ][ pathID ]["MaxUsedBandwidth"] = requestedBandwidth
 
+        #
+        # Iterate the reservedMachineResources
+        # to find the sourceID and targetID
+        # FIXME assuming no two containers have been scheduled
+        # on the SAME host for the same tenant.
+        #
         for resource in reservedMachineResources:
 
             machineHost = resource["Host"]
