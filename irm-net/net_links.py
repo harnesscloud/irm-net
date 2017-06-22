@@ -868,20 +868,52 @@ def measure_bandwidth( sourceID, targetID ):
 
     measuredBandwidth = -1
 
-    #
-    # Retrieve conpaasIP if not already there.
-    # We assume that it does not change.
-    #
-    global FIP_CONPAAS_DIRECTOR
-    if FIP_CONPAAS_DIRECTOR is None :
-        FIP_CONPAAS_DIRECTOR = get_public_IP_from_ID( 'conpaas-director' )
+    # Retrieve the following IPs:
+    # source Public IP (to connect)
+    # source Private IP
+    # target Private IP
+
+    sourcePublicIP  = get_public_IP_from_ID( sourceID )
+    sourcePrivateIP = get_private_IP_from_ID( sourceID )
+    targetPrivateIP = get_private_IP_from_ID( targetID )
 
     #
-    # Use a local variable now
+    # Connect to the source host
     #
-    conpaasIP = FIP_CONPAAS_DIRECTOR
-    if conpaasIP is None:
-        raise Exception("Could not retrieve Public IP of conpaas-director")
+    try:
+        client = paramiko.SSHClient()
+        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        client.connect( sourcePublicIP, username='root', password='contrail' )
+    except paramiko.AuthenticationException:
+        raise Exception("Authentication failed when connecting to " % sourcePublicIP)
+
+    bwperfCommand="IF=$(/sbin/ifconfig | grep HWaddr | grep -v eth0 | awk '{print $1}'); " \
+            + "/root/bwperf -i $IF " \
+            + "-f 'host " + sourcePrivateIP + " and host " + targetPrivateIP + "' " \
+            + "-t 3"
+    stdin, stdout, stderr = client.exec_command( bwperfCommand )
+    error = stderr.readlines()
+
+    #
+    # Was the connection established?
+    # Retry if not. Cap the retry times.
+    #
+    retry = 50
+    while (retry > 0) and len(error) and re.search("Connection refused", error[0]) > 0:
+        time.sleep(1)
+        retry = retry - 1
+        stdin, stdout, stderr = client.exec_command( conpaasCommand )
+        error = stderr.readlines()
+
+    # Read the output
+    output = stdout.readlines()
+
+    # Close the connection
+    client.close()
+
+    # Abort if failed
+    if ( retry <= 0 ):
+        raise Exception("Could not connect to " + sourcePublicIP)
 
     return measuredBandwidth
 
@@ -996,7 +1028,6 @@ def traffic_rules_propagate( srcIP, dstIP, bandwidthList ):
 
     #
     # Connect to conpaas-director
-    # TODO timeout?
     #
     try:
         client = paramiko.SSHClient()
