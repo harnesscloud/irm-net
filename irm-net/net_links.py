@@ -515,8 +515,11 @@ def link_create_reservation (links, paths, link_list, link_res, req, reservedMac
        raise Exception("Invalid bandwidth %.2f requested!" % bandwidth)
 
     #
-    # Reserve the bandwidth
+    # Check available bandwidth and reserve
     #
+    res = path_check_bandwidth( pathID, link_list, bandwidth )
+    if ( res ):
+        raise Exception("Not enough bandwidth (%.2f) in path: %s" % (bandwidth_abs, pathID))
     path_reserve_bandwidth( pathID, link_list, bandwidth )
 
     #
@@ -794,7 +797,26 @@ def deploy_tenant_ratelimit( tenants, paths ):
 
 #
 # Function:
-#   release_bandwidth
+#   path_check_bandwidth
+# Purpose:
+#   Checks whether a given @pathID has available @bandwidth.
+# Returns:
+#   0 - true
+#   1 - false
+#
+def path_check_bandwidth( pathID, link_list, bandwidth ):
+
+    bandwidth_abs = abs(bandwidth)
+    for linkID in link_list[ pathID ]:
+        if bandwidth_abs > links[ linkID ]["Attributes"]["Bandwidth"]:
+            return 1
+
+    return 0
+
+
+#
+# Function:
+#   path_release_bandwidth
 # Purpose:
 #   Release bandwidth from a given path;
 #   iterates all links and releases the appropriate bandwidth.
@@ -807,31 +829,17 @@ def path_release_bandwidth( pathID, link_list, bandwidth ):
 
         #
         # Iterate all links in this path
+        # Reserve/Release bandwidth on the links
         #
         for linkID in link_list[ pathID ]:
-
-            #
-            # If negative: reserve;
-            # Sanity check on links whether we have enough bandwidth
-            # or not.
-            #
-            if bandwidth < 0:
-                bandwidth_abs = (-1) * bandwidth
-                if bandwidth_abs > links[ linkID ]["Attributes"]["Bandwidth"]:
-                    raise Exception("Not enough bandwidth (%.2f) in path: %s" % (bandwidth_abs, pathID))
-
-            #
-            # Reserve/Release bandwidth on the links
-            #
             links[ linkID ]["Attributes"]["Bandwidth"] = links[ linkID ]["Attributes"]["Bandwidth"] + bandwidth
-
 
     return 0
 
 
 #
 # Function:
-#   reserve_bandwidth
+#   path_reserve_bandwidth
 # Purpose:
 #   Reserve bandwidth from a given path;
 #   iterates all links and reserves the appropriate bandwidth.
