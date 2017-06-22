@@ -479,9 +479,9 @@ def link_create_reservation (links, paths, link_list, link_res, req, reservedMac
     #logger.info("link_list=%s", json.dumps(link_list))
     #logger.info("link_res=%s", json.dumps(link_res))
     #logger.info("req=%s", json.dumps(req))
-    
+
     # find the ID; it is either provided (Damian's CRS, or it needs to be found)
-    
+
     pathID = None
     if 'ID' not in req:
        if ('Source' not in req["Attributes"]) or ('Target' not in req["Attributes"]):
@@ -495,7 +495,7 @@ def link_create_reservation (links, paths, link_list, link_res, req, reservedMac
              (paths[p]["Attributes"]["Target"] == req["Attributes"]["Source"]):
              pathID = p
              break
-                          
+
        if pathID == None:
           raise Exception("Cannot find a path with source: %s and target: %s" % (req["Attributes"]["Source"], \
                                                                                  req["Attributes"]["Target"]))
@@ -540,9 +540,9 @@ def link_create_reservation (links, paths, link_list, link_res, req, reservedMac
     install_traffic_rules( paths[pathID]["Attributes"]["Source"], \
             paths[pathID]["Attributes"]["Target"],
             bandwidth, reservedMachineResources )
-    
+
     return resID
-    
+
 def link_release_reservation (links, paths, link_list, link_res, resIDs):
 
     for resID in resIDs:
