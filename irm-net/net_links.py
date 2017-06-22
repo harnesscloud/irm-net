@@ -583,7 +583,7 @@ tenantTable={}
 #
 # Add tenant in @tenantTable
 #
-def add_tenant( tenantID, paths, resourceList ):
+def add_tenant( tenantID, paths, reservedMachineResources ):
 
     #
     # Initialize tenant json
@@ -596,7 +596,7 @@ def add_tenant( tenantID, paths, resourceList ):
     # NOTE: if importing just "combinations" from itertools,
     # do not give the same name to 'combinations'
     #
-    combinationList = list( itertools.combinations(resourceList, 2) )
+    combinationList = list( itertools.combinations(reservedMachineResources, 2) )
 
     # Iterate all pairs
     for pair in combinationList:
@@ -631,7 +631,7 @@ def add_tenant( tenantID, paths, resourceList ):
         tenantTable[ tenantID ][ pathID ] = {}
         tenantTable[ tenantID ][ pathID ]["Bandwidth"] = -1  # undefined
 
-        for resource in resourceList:
+        for resource in reservedMachineResources:
 
             machineHost = resource["Host"]
             machineID   = resource["ID"]
