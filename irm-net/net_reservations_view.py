@@ -61,7 +61,7 @@ class NETReservationsView(ReservationsView):
 
         # List of reserved resources, of type "Machine" and "Web-*";
         # The reservation IDs are needed during bandwidth allocation
-        reservedLinkResources=[]
+        reservedMachineResources=[]
 
         # Generate Reservation ID
         # It won't be used unless we encounter no rollbacks.
@@ -108,7 +108,7 @@ class NETReservationsView(ReservationsView):
                  topology = NETResourcesView.Topology
                  id = link_create_reservation(topology["links"], topology["paths"], topology["link_list"],\
                                               NETReservationsView.LinkReservations, req,\
-                                              reservedLinkResources)
+                                              reservedMachineResources)
                  ret = { "result": { "ReservationID": [id] }} 
               elif req["Type"].split("-")[0] == "Web":
                  ret = { "result": { "ReservationID": [req["ID"]] }}
@@ -134,13 +134,13 @@ class NETReservationsView(ReservationsView):
                                           "name": "IRM-NET", "ManagerID": None, \
                                           "iRes": rID, "pos": req["pos"], "type": req["Type"] })                                     
                                           
-                 # Add reserved machines/webs to @reservedLinkResources list.
+                 # Add reserved machines/webs to @reservedMachineResources list.
                  # Simplified list to be passed to @net_links.link_create_reservation( ... )
                  #
                  if req["Type"] == "Machine":
-                     reservedLinkResources.append({ "Type": req["Type"], "ID": rID[0], "Host": req["ID"]})
+                     reservedMachineResources.append({ "Type": req["Type"], "ID": rID[0], "Host": req["ID"]})
                  elif req["Type"].split("-")[0] == "Web":    
-                     reservedLinkResources.append({ "Type": req["Type"], "ID": rID[0], 
+                     reservedMachineResources.append({ "Type": req["Type"], "ID": rID[0],
                                                     "Host": req["ID"], 
                                                     "IP": 
                                                     NETResourcesView.Webs[
@@ -158,7 +158,7 @@ class NETReservationsView(ReservationsView):
            topology = NETResourcesView.Topology
            bwadapt_add_tenant(topology["links"], topology["paths"], topology["link_list"],\
                    NETReservationsView.LinkReservations, str(resID),\
-                   reservedLinkResources)
+                   reservedMachineResources)
 
         except Exception as e:
            print "rolling back! " + str(e)
