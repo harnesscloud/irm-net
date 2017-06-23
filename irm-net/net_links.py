@@ -930,6 +930,14 @@ def measure_bandwidth( sourceID, targetID ):
     if len(error):
         return -1
 
+    # Retrieve the last line
+    # Find all numbers
+    # Bandwidth is the last match
+    statsLine = output[ len(output)-1 ]
+    regexBw = "[0-9\.]+"
+    matches = re.findall( regexBw, statsLine )
+    measuredBandwidth = matches[ len(matches)-1 ]
+
     return measuredBandwidth
 
 
