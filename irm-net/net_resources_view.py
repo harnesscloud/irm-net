@@ -57,7 +57,7 @@ class NETResourcesView(ResourcesView):
           # TODO run as independent thread within IRM-NET
           # TODO watch out for resource contention if you do
           topology = NETResourcesView.Topology
-          bwadapth_periodic_update( topology["links"], topology["paths"], \
+          bwadapt_periodic_update( topology["links"], topology["paths"], \
                   topology["link_list"] )
 
           return ret
