@@ -523,7 +523,7 @@ def link_create_reservation (links, paths, link_list, link_res, req, reservedMac
     error = path_check_bandwidth( pathID, links, link_list, bandwidth )
     if ( error ):
         raise Exception("Not enough bandwidth (%.2f) in path: %s" % (bandwidth, pathID))
-    path_reserve_bandwidth( pathID, link_list, bandwidth )
+    path_reserve_bandwidth( pathID, links, link_list, bandwidth )
 
     #
     # Create the reservation ID
@@ -555,7 +555,7 @@ def link_release_reservation (links, paths, link_list, link_res, resIDs):
         # Release the bandwidth
         # from that path.
         #
-        path_release_bandwidth( pathID, link_list, bandwidth )
+        path_release_bandwidth( pathID, links, link_list, bandwidth )
 
         # Remove reservation from list
         del( link_res[resID] )
@@ -780,7 +780,7 @@ def calc_tenant_bandwidth( links, paths, link_list ):
 
             # This is the actual command that will update the links table
             # and, subsequently, the paths and finally the CRS.
-            path_release_bandwidth( pathID, link_list, releasedBandwidth )
+            path_release_bandwidth( pathID, links, link_list, releasedBandwidth )
 
             #
             # Set the path's consumed bandwidth based on the measurements
@@ -827,7 +827,7 @@ def path_check_bandwidth( pathID, links, link_list, bandwidth ):
 #   if we can create a new reservation; set to 'RealBandwidth',
 #   unless the latter is negative, in which case it's set to zero.
 #
-def path_release_bandwidth( pathID, link_list, bandwidth ):
+def path_release_bandwidth( pathID, links, link_list, bandwidth ):
 
     if bandwidth != 0:
 
@@ -863,8 +863,8 @@ def path_release_bandwidth( pathID, link_list, bandwidth ):
 #   If @bandwidth is zero, nothing happens.
 #   If @bandwidth is negative, bandwidth is released, instead.
 #
-def path_reserve_bandwidth( pathID, link_list, bandwidth ):
-    return path_release_bandwidth( pathID, link_list, (-1)*bandwidth )
+def path_reserve_bandwidth( pathID, links, link_list, bandwidth ):
+    return path_release_bandwidth( pathID, links, link_list, (-1)*bandwidth )
 
 
 ################################## Lib Stuff - End ####################################
