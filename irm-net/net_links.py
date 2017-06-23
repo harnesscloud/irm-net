@@ -654,7 +654,7 @@ def add_tenant( tenantID, paths, reservedMachineResources, reservedLinkResources
         requestedBandwidth = -1
         for linkResource in reservedLinkResources:
             tmpPathID = linkResource["ID"]
-                if tmpPathID == pathID:
+            if tmpPathID == pathID:
                 requestedBandwidth = linkResource["Attributes"]["Bandwidth"]
                 break
 
