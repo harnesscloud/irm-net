@@ -673,9 +673,9 @@ def add_tenant( tenantID, paths, reservedMachineResources, reservedLinkResources
             machineHost = resource["Host"]
             machineID   = resource["ID"]
 
-            if machineHost == source :
+            if machineHost == sourceHost :
                 tenantTable[ tenantID ][ pathID ]["SourceID"] = machineID
-            elif machineHost == target :
+            elif machineHost == targetHost :
                 tenantTable[ tenantID ][ pathID ]["TargetID"] = machineID
 
     return 0
