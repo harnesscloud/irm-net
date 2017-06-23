@@ -778,8 +778,8 @@ def calc_tenant_bandwidth( links, paths, link_list ):
             oldBandwidth = tenantTable[ tenantID ][ pathID ]["UsedBandwidth"]
             releasedBandwidth = oldBandwidth - measuredBandwidth
 
-            # This is the actual command that will update the path table
-            # and, subsequently, the CRS.
+            # This is the actual command that will update the links table
+            # and, subsequently, the paths and finally the CRS.
             path_release_bandwidth( pathID, link_list, releasedBandwidth )
 
             #
