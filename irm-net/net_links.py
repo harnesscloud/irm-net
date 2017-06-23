@@ -774,7 +774,8 @@ def calc_tenant_bandwidth( links, paths, link_list ):
 
             # This is the actual command that will update the links table
             # and, subsequently, the paths and finally the CRS.
-            path_release_bandwidth( pathID, links, link_list, releasedBandwidth )
+            if releasedBandwidth != 0 :
+                path_release_bandwidth( pathID, links, link_list, releasedBandwidth )
 
             #
             # Set the path's consumed bandwidth based on the measurements
