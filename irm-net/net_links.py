@@ -640,14 +640,13 @@ def add_tenant( tenantID, paths, reservedMachineResources, reservedLinkResources
         # i.e., the tenant has not made two virtual path reservations
         # across the SAME path.
         #
+        # LinkResources have the following fields:
+        # {u'Attributes': {u'Bandwidth': 100.0}, u'Type': u'Link', u'ID': u'P11', 'pos': 3}
+        #
         requestedBandwidth = -1
         for linkResource in reservedLinkResources:
-            tmpSourceHost = linkResource["Attributes"]["Source"]
-            tmpTargetHost = linkResource["Attributes"]["Target"]
-
-            if ((tmpSourceHost == sourceHost) and (tmpTargetHost == targetHost)) \
-                    or ((tmpSourceHost == targetHost) and (tmpTargetHost == sourceHost)):
-
+            tmpPathID = linkResource["ID"]
+                if tmpPathID == pathID:
                 requestedBandwidth = linkResource["Attributes"]["Bandwidth"]
                 break
 
