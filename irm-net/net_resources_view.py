@@ -3,11 +3,11 @@
 from hresman import utils
 from hresman.utils import json_request, json_reply, json_error
 from hresman.resources_view import ResourcesView
-import net_managers_view 
+import net_managers_view
 import copy
 from hresman.utils import get, post
 import net_managers_view
-from net_links import link_gen_topology, link_calc_capacity 
+from net_links import link_gen_topology, link_calc_capacity, bwadapt_periodic_update
 import net_webs
 import json
 
@@ -52,6 +52,13 @@ class NETResourcesView(ResourcesView):
           if NETResourcesView.Topology != None and \
              len(NETResourcesView.Topology["constraint_list"]) > 0:
                 ret["Constraints"] = NETResourcesView.Topology["constraint_list"]
+
+          # Bandwidth
+          # TODO run as independent thread within IRM-NET
+          # TODO watch out for resource contention if you do
+          topology = NETResourcesView.Topology
+          bwadapth_periodic_update( topology["links"], topology["paths"], \
+                  topology["link_list"] )
 
           return ret
        else:

@@ -458,7 +458,7 @@ def bwadapt_add_tenant (links, paths, link_list, link_res, tenantID,
 
     # Add tenant to database
     add_tenant( tenantID, paths, reservedMachineResources, reservedLinkResources )
-    update_tenant_bandwidth( links, paths, link_list )
+    bwadapt_periodic_update( links, paths, link_list )
     return 0
 
 
@@ -466,12 +466,20 @@ def bwadapt_remove_tenant (links, paths, link_list, link_res, tenantID):
 
     # Find tenant in database and remove
     remove_tenant( tenantID )
-    update_tenant_bandwidth( links, paths, link_list )
+    bwadapt_periodic_update( links, paths, link_list )
     return 0
 
 
 def bwadapt_delete_all_tenants():
     delete_all_tenants()
+    return 0
+
+
+def bwadapt_periodic_update( links, paths, link_list ):
+
+    calc_tenant_bandwidth( links, paths, link_list )
+    calculate_attribs( paths, link_list, links )
+
     return 0
 
 
@@ -705,17 +713,6 @@ def delete_all_tenants():
 
     for key in delList:
         del tenantTable[key]
-
-    return 0
-
-
-#
-# Update links & paths after tenant update.
-#
-def update_tenant_bandwidth( links, paths, link_list ):
-
-    calc_tenant_bandwidth( links, paths, link_list )
-    calculate_attribs( paths, link_list, links )
 
     return 0
 
