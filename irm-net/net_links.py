@@ -458,7 +458,6 @@ def bwadapt_add_tenant (links, paths, link_list, link_res, tenantID,
 
     # Add tenant to database
     add_tenant( tenantID, paths, reservedMachineResources, reservedLinkResources )
-    bwadapt_periodic_update( links, paths, link_list )
     return 0
 
 
@@ -466,7 +465,6 @@ def bwadapt_remove_tenant (links, paths, link_list, link_res, tenantID):
 
     # Find tenant in database and remove
     remove_tenant( tenantID )
-    bwadapt_periodic_update( links, paths, link_list )
     return 0
 
 
