@@ -933,7 +933,7 @@ def measure_bandwidth( sourceID, targetID ):
     matches = re.findall( regexBw, statsLine )
     measuredBandwidth = matches[ len(matches)-1 ]
 
-    return measuredBandwidth
+    return float(measuredBandwidth)
 
 
 #
