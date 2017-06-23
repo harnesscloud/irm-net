@@ -520,7 +520,7 @@ def link_create_reservation (links, paths, link_list, link_res, req, reservedMac
     #
     # Check available bandwidth and reserve
     #
-    error = path_check_bandwidth( pathID, link_list, bandwidth )
+    error = path_check_bandwidth( pathID, links, link_list, bandwidth )
     if ( error ):
         raise Exception("Not enough bandwidth (%.2f) in path: %s" % (bandwidth, pathID))
     path_reserve_bandwidth( pathID, link_list, bandwidth )
@@ -803,7 +803,7 @@ def calc_tenant_bandwidth( links, paths, link_list ):
 #   0 - true
 #   1 - false
 #
-def path_check_bandwidth( pathID, link_list, bandwidth ):
+def path_check_bandwidth( pathID, links, link_list, bandwidth ):
 
     bandwidth_abs = abs(bandwidth)
     for linkID in link_list[ pathID ]:
