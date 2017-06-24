@@ -63,9 +63,6 @@ class NETReservationsView(ReservationsView):
         # The reservation IDs are needed during bandwidth allocation
         reservedMachineResources=[]
 
-        # List of reserved resources, of type "Link".
-        reservedLinkResources=[]
-
         # Generate Reservation ID
         # It won't be used unless we encounter no rollbacks.
         resID = uuid.uuid1()
@@ -139,7 +136,6 @@ class NETReservationsView(ReservationsView):
                                           
                  # Add reserved machines/webs to @reservedMachineResources list.
                  # Simplified list to be passed to @net_links.link_create_reservation( ... )
-                 # Add reserved links to @reservedLinkResources list.
                  # This will be passed to @bwadapt_add_tenant to get each path's
                  # requested bandwidth.
                  if req["Type"] == "Machine":
@@ -150,8 +146,6 @@ class NETReservationsView(ReservationsView):
                                                     "IP": 
                                                     NETResourcesView.Webs[
                                                     req["ID"]]["Attributes"]["IP"]})
-                 elif req["Type"] == "Link":
-                     reservedLinkResources.append( req )
 
               else:
                  raise Exception("internal error: %s" % str(ret))
@@ -165,8 +159,8 @@ class NETReservationsView(ReservationsView):
            # FairCloud: add the tenant's machines
            topology = NETResourcesView.Topology
            bwadapt_add_tenant(topology["links"], topology["paths"], topology["link_list"],\
-                   NETReservationsView.LinkReservations, str(resID),\
-                   reservedMachineResources, reservedLinkResources)
+                   str(resID),\
+                   reservedMachineResources, NETReservationsView.LinkReservations)
 
         except Exception as e:
            print "rolling back! " + str(e)

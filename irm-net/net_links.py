@@ -453,7 +453,7 @@ def link_calc_capacity(resource, allocation, release):
 ################################## UTI Stuff - End ####################################
 ################################## API Stuff - Start ##################################
 
-def bwadapt_add_tenant (links, paths, link_list, link_res, tenantID,
+def bwadapt_add_tenant (links, paths, link_list, tenantID,
         reservedMachineResources, reservedLinkResources ):
 
     # Add tenant to database
@@ -473,9 +473,9 @@ def bwadapt_delete_all_tenants():
     return 0
 
 
-def bwadapt_periodic_update( links, paths, link_list ):
+def bwadapt_periodic_update( links, paths, link_list, reservedLinkResources ):
 
-    calc_tenant_bandwidth( links, paths, link_list )
+    calc_tenant_bandwidth( links, paths, link_list, reservedLinkResources )
     calculate_attribs( paths, link_list, links )
 
     return 0
@@ -647,15 +647,17 @@ def add_tenant( tenantID, paths, reservedMachineResources, reservedLinkResources
         # across the SAME path.
         #
         # LinkResources have the following fields:
-        # {u'Attributes': {u'Bandwidth': 100.0}, u'Type': u'Link', u'ID': u'P11', 'pos': 3}
+        # link_res: {'c835b4ca-58eb-11e7-9a6d-0242ac110002': {'pathID': u'P18', 'bandwidth': 100.0}}
         #
         requestedBandwidth = -1
-        for linkResource in reservedLinkResources:
-            tmpPathID = linkResource["ID"]
+        for resID in reservedLinkResources:
+            tmpPathID = reservedLinkResources[ resID ]["pathID"]
             if tmpPathID == pathID:
-                requestedBandwidth = linkResource["Attributes"]["Bandwidth"]
+                requestedBandwidth = reservedLinkResources[ resID ]["bandwidth"]
+                linkResID = resID
                 break
 
+        # TODO check if we may enter this 'if' under normal circumstances.
         if requestedBandwidth < 0:
             raise Exception("Could not find requested bandwidth for path " % pathID)
 
@@ -663,10 +665,14 @@ def add_tenant( tenantID, paths, reservedMachineResources, reservedLinkResources
         # Initialize path json.
         # Initialize values.
         # Store ID values of machines.
+        # Also keep the ID of the reserved link resource,
+        # needed to update the 'NETReservationsView.LinkReservations'
+        # when the bandwidth is re-measured.
         #
         tenantTable[ tenantID ][ pathID ] = {}
         tenantTable[ tenantID ][ pathID ]["UsedBandwidth"] = requestedBandwidth
         tenantTable[ tenantID ][ pathID ]["MaxUsedBandwidth"] = requestedBandwidth
+        tenantTable[ tenantID ][ pathID ]["linkResID"] = linkResID
 
         #
         # Iterate the reservedMachineResources
@@ -718,7 +724,7 @@ def delete_all_tenants():
 #
 # Calculate the bottleneck of each path:
 #
-def calc_tenant_bandwidth( links, paths, link_list ):
+def calc_tenant_bandwidth( links, paths, link_list, reservedLinkResources ):
 
     #
     # Iterate all active tenants
@@ -782,6 +788,21 @@ def calc_tenant_bandwidth( links, paths, link_list ):
             # A minimum bandwidth is always guaranteed.
             #
             tenantTable[ tenantID ][ pathID ]["UsedBandwidth"] = measuredBandwidth
+
+            #
+            # Update the reservedLinkResources with the amount of bandwidth
+            # that we are using now.
+            # TODO we still assume 1 reservation per tenant per path.
+            #
+            linkResID = tenantTable[ tenantID ][ pathID ]["linkResID"]
+            if linkResID not in reservedLinkResources:
+                raise Exception("Link " % linkResID % \
+                        " not found in NETReservationsView.LinkReservations")
+
+            if pathID == reservedLinkResources[ linkResID ]["pathID"] \
+                    and oldBandwidth == reservedLinkResources[ linkResID ]["bandwidth"]:
+
+                reservedLinkResources[ linkResID ]["bandwidth"] = measuredBandwidth
 
     return 0
 
