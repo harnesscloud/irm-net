@@ -314,7 +314,7 @@ def gen_paths(links, nodes):
             paths[ pathID ]["Attributes"]["Bandwidth"] = 0
             paths[ pathID ]["Attributes"]["Latency"]   = 0
             paths[ pathID ]["Attributes"]["Source"] = nodes[i]["ID"]
-            paths[ pathID ]["Attributes"]["Target"] =  nodes[j]["ID"]
+            paths[ pathID ]["Attributes"]["Target"] = nodes[j]["ID"]
 
     #print "paths :::>", json.dumps(paths, indent=4) 
 
