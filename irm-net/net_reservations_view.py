@@ -224,8 +224,19 @@ class NETReservationsView(ReservationsView):
              raise Exception("cannot find reservation: " + reservation)
 
           # reverse the order in which they were created
-          data = ReservationsView.reservations[reservation][::-1] 
-          del ReservationsView.reservations[reservation]  
+          data = ReservationsView.reservations[reservation][::-1]
+          del ReservationsView.reservations[reservation]
+
+          for alloc in data:
+             if alloc["addr"] != None:
+                ret = hresman.utils.delete_( { "ReservationID" : alloc["iRes"] }, "releaseReservation", alloc["port"], alloc["addr"])
+             elif alloc["type"] == "Link":
+                topology = NETResourcesView.Topology
+                res = link_release_reservation(topology["links"], topology["paths"], topology["link_list"],\
+                      NETReservationsView.LinkReservations, alloc["iRes"])
+                ret = { "result": res }
+             #if "result" not in ret:
+             #   raise Exception("Error in deleting reservation: ", str(ret))
 
           # Delete the tenant from the FairCloud database
           resID = reservation
@@ -233,19 +244,8 @@ class NETReservationsView(ReservationsView):
           bwadapt_remove_tenant(topology["links"], topology["paths"], topology["link_list"],\
                   NETReservationsView.LinkReservations, str(resID))
 
-          for alloc in data:  
-             if alloc["addr"] != None:
-                ret = hresman.utils.delete_( { "ReservationID" : alloc["iRes"] }, "releaseReservation", alloc["port"], alloc["addr"])
-             elif alloc["type"] == "Link":
-                topology = NETResourcesView.Topology   
-                res = link_release_reservation(topology["links"], topology["paths"], topology["link_list"],\
-                      NETReservationsView.LinkReservations, alloc["iRes"])
-                ret = { "result": res }
-             #if "result" not in ret:
-             #   raise Exception("Error in deleting reservation: ", str(ret))
-                
-       return { }   
-  
+       return { }
+
     ###############################################  release all reservations ############        
     def _release_all_reservations(self):
        managers = NETManagersView.managers
@@ -253,15 +253,16 @@ class NETReservationsView(ReservationsView):
           hresman.utils.delete_({}, "releaseAllReservations", managers[m]['Port'], managers[m]['Address'])
        ReservationsView.reservations = {}
 
-       # Delete all FairCloud tenants
-       bwadapt_delete_all_tenants()
+       topology = NETResourcesView.Topology
 
-       topology = NETResourcesView.Topology                                                     
        for id in copy.copy(NETReservationsView.LinkReservations):
           link_release_reservation(topology["links"], topology["paths"], topology["link_list"],\
                                    NETReservationsView.LinkReservations, [id])
-                                   
+
        if len(NETReservationsView.LinkReservations) > 0:
-          raise Exception("could not release all reservations!")                           
-       
-       return {}            
+          raise Exception("could not release all reservations!")
+
+       # Delete all FairCloud tenants
+       bwadapt_delete_all_tenants()
+
+       return {}
