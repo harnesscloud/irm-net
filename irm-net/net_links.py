@@ -473,9 +473,9 @@ def bwadapt_delete_all_tenants():
     return 0
 
 
-def bwadapt_periodic_update( links, paths, link_list, reservedLinkResources ):
+def bwadapt_periodic_update( links, paths, link_list ):
 
-    calc_tenant_bandwidth( links, paths, link_list, reservedLinkResources )
+    calc_tenant_bandwidth( links, paths, link_list )
     calculate_attribs( paths, link_list, links )
 
     return 0
@@ -555,7 +555,12 @@ def link_release_reservation (links, paths, link_list, link_res, resIDs):
            raise Exception("Cannot find reservation ID: %s" % resID)
 
         pathID    = link_res[ resID ]["pathID"]
-        bandwidth = link_res[ resID ]["bandwidth"]
+        bandwidth = get_used_bandwidth( resID )
+
+        if bandwidth == 0:
+            raise Exception("Zero bandwidth in linkResID " % resID)
+        elif bandwidth < 0:
+            raise Exception("linkResID " % resID % " not found in tenantTable")
 
         #
         # Release the bandwidth
@@ -724,7 +729,7 @@ def delete_all_tenants():
 #
 # Calculate the bottleneck of each path:
 #
-def calc_tenant_bandwidth( links, paths, link_list, reservedLinkResources ):
+def calc_tenant_bandwidth( links, paths, link_list ):
 
     #
     # Iterate all active tenants
@@ -789,22 +794,17 @@ def calc_tenant_bandwidth( links, paths, link_list, reservedLinkResources ):
             #
             tenantTable[ tenantID ][ pathID ]["UsedBandwidth"] = measuredBandwidth
 
-            #
-            # Update the reservedLinkResources with the amount of bandwidth
-            # that we are using now.
-            # TODO we still assume 1 reservation per tenant per path.
-            #
-            linkResID = tenantTable[ tenantID ][ pathID ]["linkResID"]
-            if linkResID not in reservedLinkResources:
-                raise Exception("Link " % linkResID % \
-                        " not found in NETReservationsView.LinkReservations")
-
-            if pathID == reservedLinkResources[ linkResID ]["pathID"] \
-                    and oldBandwidth == reservedLinkResources[ linkResID ]["bandwidth"]:
-
-                reservedLinkResources[ linkResID ]["bandwidth"] = measuredBandwidth
-
     return 0
+
+
+def get_used_bandwidth( linkResID ):
+
+    for tenantID in tenantTable:
+        for pathID in tenantTable[ tenantID ]:
+            if tenantTable[ tenantID ][ pathID ]["linkResID"] == linkResID:
+                return tenantTable[ tenantID ][ pathID ]["UsedBandwidth"]
+
+    return -1
 
 
 ################################## Fair Stuff - End ####################################

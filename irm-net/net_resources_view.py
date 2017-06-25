@@ -58,7 +58,7 @@ class NETResourcesView(ResourcesView):
           # TODO watch out for resource contention if you do
           topology = NETResourcesView.Topology
           bwadapt_periodic_update( topology["links"], topology["paths"], \
-                  topology["link_list"], NETReservationsView.LinkReservations )
+                  topology["link_list"] )
 
           return ret
        else:
