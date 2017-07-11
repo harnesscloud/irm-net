@@ -1,5 +1,6 @@
 import json
-import time
+import time         # to retry when ssh fails
+import subprocess   # to get IPs through nova calls
 import logging, logging.handlers as handlers
 
 import re           # grep IPs using regex
