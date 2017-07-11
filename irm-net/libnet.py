@@ -47,34 +47,39 @@ def install_traffic_rules( sourceHost, targetHost, bandwidth, reservedLinkResour
             sourceType = resource["Type"]
             if sourceType == "Machine":
                 sourceIP = get_private_IP_from_ID(resource["ID"])
+                sourceFIP = get_public_IP_from_ID(resource["ID"])
             else:
                 sourceIP = resource["IP"]    
         if resource["Host"] == targetHost :
             targetType = resource["Type"]        
             if targetType == "Machine":
                 targetIP = get_private_IP_from_ID(resource["ID"])
+                targetFIP = get_public_IP_from_ID(resource["ID"])
             else:
                 targetIP = resource["IP"]    
 
-        if sourceIP is not None and targetIP is not None :
+        if sourceIP is not None and targetIP is not None \
+                and sourceFIP is not None and targetFIP is not None:
             break
 
     if not sourceIP or not targetIP :
         raise Exception("Could not find Private IPs for resources " + sourceHost + ", " + targetHost)
+    if not sourceFIP or not targetFIP :
+        raise Exception("Could not find Public IPs for resources " + sourceHost + ", " + targetHost)
 
     #
     # Install rules on both containers
     #
     if sourceType == "Machine":
-       traffic_rules_propagate( sourceIP, targetIP, [bandwidth] )
+       traffic_rules_propagate( sourceFIP, targetIP, [bandwidth] )
     
     if targetType == "Machine":
-       traffic_rules_propagate( targetIP, sourceIP, [bandwidth] )
+       traffic_rules_propagate( targetFIP, sourceIP, [bandwidth] )
 
 
 #
 # Parameters:
-#   @srcIP          Private IP of container where the rules will be installed
+#   @srcIP          Public  IP of container where the rules will be installed
 #   @dstIP          Private IP of the second container that these rules concern
 #   @bandwidthList  List Requested bandwidth in Mbit/sec
 #
