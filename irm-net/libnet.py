@@ -1,9 +1,11 @@
 import json
 import time
+import logging, logging.handlers as handlers
 
 import re           # grep IPs using regex
 import paramiko     # ssh remote commands
 
+logger = logging.getLogger("Rotating Log")
 
 ################################## Lib Stuff - Start ##################################
 
