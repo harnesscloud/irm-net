@@ -22,12 +22,12 @@ irm_net_path = os.path.dirname(os.path.abspath(__file__))
 #
 def install_traffic_rules( sourceHost, targetHost, bandwidth, reservedLinkResources ):
 
-    #print "sourceHost:", sourceHost    
+    #print "sourceHost:", sourceHost
     #print "targetHost:", targetHost
     #print "reservedLinkResources: ", reservedLinkResources
-    
-    #reservedLinkResources:  [{'Host': u'compute-001', 'Type': u'Machine', 
-    # 'ID': u'ac244a32-2913-49a4-bbb2-07a627bdb101'}, {'IP': u'192.168.13.42', 
+
+    #reservedLinkResources:  [{'Host': u'compute-001', 'Type': u'Machine',
+    # 'ID': u'ac244a32-2913-49a4-bbb2-07a627bdb101'}, {'IP': u'192.168.13.42',
     #'Host': u'web-wikipedia', 'Type': u'Web-Wikipedia', 'ID': u'web-wikipedia'}]
 
     #
@@ -49,14 +49,14 @@ def install_traffic_rules( sourceHost, targetHost, bandwidth, reservedLinkResour
                 sourceIP = get_private_IP_from_ID(resource["ID"])
                 sourceFIP = get_public_IP_from_ID(resource["ID"])
             else:
-                sourceIP = resource["IP"]    
+                sourceIP = resource["IP"]
         if resource["Host"] == targetHost :
-            targetType = resource["Type"]        
+            targetType = resource["Type"]
             if targetType == "Machine":
                 targetIP = get_private_IP_from_ID(resource["ID"])
                 targetFIP = get_public_IP_from_ID(resource["ID"])
             else:
-                targetIP = resource["IP"]    
+                targetIP = resource["IP"]
 
         if sourceIP is not None and targetIP is not None \
                 and sourceFIP is not None and targetFIP is not None:
@@ -72,7 +72,7 @@ def install_traffic_rules( sourceHost, targetHost, bandwidth, reservedLinkResour
     #
     if sourceType == "Machine":
        traffic_rules_propagate( sourceFIP, targetIP, [bandwidth] )
-    
+
     if targetType == "Machine":
        traffic_rules_propagate( targetFIP, sourceIP, [bandwidth] )
 
