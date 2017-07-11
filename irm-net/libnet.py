@@ -1,12 +1,18 @@
 import json
-import time         # to retry when ssh fails
+import os           # to get current path
 import subprocess   # to get IPs through nova calls
-import logging, logging.handlers as handlers
+import time         # to retry when ssh fails
 
 import re           # grep IPs using regex
 import paramiko     # ssh remote commands
 
+import logging, logging.handlers as handlers
+
+## Logger handler
 logger = logging.getLogger("Rotating Log")
+
+## Current folder
+irm_net_path = os.path.dirname(os.path.abspath(__file__))
 
 ################################## Lib Stuff - Start ##################################
 
