@@ -17,24 +17,34 @@ irm_net_path = os.path.dirname(os.path.abspath(__file__))
 ################################## Lib Stuff - Start ##################################
 
 #
-# TODO close processes
-# http://kendriu.com/how-to-use-pipes-in-python-subprocesspopen-objects
+# Function:
+#   install_traffic_rules
+# Purpose:
+#   Install a SINGLE traffic rule between two hosts during a CRS reservation.
+#   FIXME this assumes that a tenant does not reserve two containers
+#   on the SAME host machine. The behavior is undefined in this case.
+# Parameters:
+#   @sourceHost         Hostname of machine to install the traffic rules (e.g., paranoia-1)
+#   @targetHost         Hostname of machine to impose a bandwidth limitation with @sourceHost
+#   bandwidth               (int) Bandwidth cap in Mbit/sec
+#   reservedLinkResouces    List of the reserved Machine Resources in this CRS reservation.
+#                           Used to translate hostnames to machine IDs.
 #
-def install_traffic_rules( sourceHost, targetHost, bandwidth, reservedLinkResources ):
+def install_traffic_rules( sourceHost, targetHost, bandwidth, ReservedMachineResources ):
 
     #print "sourceHost:", sourceHost
     #print "targetHost:", targetHost
-    #print "reservedLinkResources: ", reservedLinkResources
+    #print "ReservedMachineResources: ", ReservedMachineResources
 
-    #reservedLinkResources:  [{'Host': u'compute-001', 'Type': u'Machine',
+    #ReservedMachineResources:  [{'Host': u'compute-001', 'Type': u'Machine',
     # 'ID': u'ac244a32-2913-49a4-bbb2-07a627bdb101'}, {'IP': u'192.168.13.42',
     #'Host': u'web-wikipedia', 'Type': u'Web-Wikipedia', 'ID': u'web-wikipedia'}]
 
     #
-    # Iterate @reservedLinkResources and find the IDs.
+    # Iterate @ReservedMachineResources and find the IDs.
     # FIXME we assume that there is a 1-1 match between hosts and containers.
     # TODO scenario when two containers are on the same host.
-    # json format of each machine element in @reservedLinkResources:
+    # json format of each machine element in @ReservedMachineResources:
     #   {"Host" : compute-host, "ID": ID of container}
     #
 
@@ -42,7 +52,7 @@ def install_traffic_rules( sourceHost, targetHost, bandwidth, reservedLinkResour
     targetIP = None
     sourceType = None
     targetType = None
-    for resource in reservedLinkResources:
+    for resource in ReservedMachineResources:
         if resource["Host"] == sourceHost :
             sourceType = resource["Type"]
             if sourceType == "Machine":
@@ -105,7 +115,6 @@ def traffic_rules_propagate( srcIP, dstIP, bandwidthList ):
 
     #
     # Connect to conpaas-director
-    # TODO timeout?
     #
     try:
         client = paramiko.SSHClient()
