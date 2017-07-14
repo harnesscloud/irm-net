@@ -15,7 +15,7 @@ import itertools    # create combinations from list
 
 # Floating IP of conpaas-director
 FIP_CONPAAS_DIRECTOR = None
-from libnet import install_traffic_rules
+from libnet import install_traffic_rules, get_public_IP_from_ID, get_private_IP_from_ID
 
 
 ################################## CLI Stuff - Start ##################################
@@ -1006,9 +1006,9 @@ def register_ID_rate( rateList, sourceMachineID, targetMachineID, bandwidth ):
 def install_rules( sourceMachineID, bandwidthList ):
 
     # Get private IP
-    sourceIP = get_private_IP_from_ID( sourceMachineID )
+    sourceIP = get_public_IP_from_ID( sourceMachineID )
     if sourceIP == None:
-        raise Exception("Could not find Private IP for source machine " + sourceMachineID )
+        raise Exception("Could not find Public IP for source machine " + sourceMachineID )
 
     #
     # Craft bandwidth requests
@@ -1063,34 +1063,12 @@ def propagate_rules( sourceMachineIP, bwRatesString ):
     tcCommand = tcBaseData.replace('__BWRATESTRING',json.JSONEncoder().encode(bwRatesString))
 
     #
-    # Retrieve conpaasIP if not already there.
-    # We assume that it does not change.
-    # TODO retrieve again if cannot connet
-    #
-    global FIP_CONPAAS_DIRECTOR
-    if FIP_CONPAAS_DIRECTOR is None :
-        FIP_CONPAAS_DIRECTOR = get_public_IP_from_ID( 'conpaas-director' )
-
-    #
-    # Use a local variable now
-    #
-    conpaasIP = FIP_CONPAAS_DIRECTOR
-    if conpaasIP is None:
-        raise Exception("Could not retrieve Public IP of conpaas-director")
-
-    #
-    # Craft remote command @ conpaas-director
-    #
-    conpaasCommand = 'ssh root@' + sourceMachineIP + ' bash -s << EOF\n' + tcCommand + '\nEOF'
-
-    #
     # Connect to conpaas-director
-    # TODO timeout?
     #
     try:
         client = paramiko.SSHClient()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        client.connect(conpaasIP, username='root')
+        client.connect( sourceMachineIP, username='root', password='contrail' )
     except paramiko.AuthenticationException:
         raise Exception("Authentication failed when connecting to conpaas-director")
 
