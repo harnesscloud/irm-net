@@ -142,7 +142,7 @@ def traffic_rules_propagate( srcIP, dstIP, bandwidthList ):
 
     # Abort if failed
     if ( retry <= 0 ):
-        raise Exception("Could not connect to " + sourceMachineIP)
+        raise Exception("Could not connect to " + srcIP)
 
     return 0
 
