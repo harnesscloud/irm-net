@@ -2,10 +2,12 @@ import json
 import os           # to get current path
 import subprocess   # to get IPs through nova calls
 import time         # to retry when ssh fails
-
 import re           # grep IPs using regex
+
 import paramiko     # ssh remote commands
-import sys          # get last exception message
+import errno        # to handle socker error messages
+import sys          # to get the unhandled exception message
+from socket import error as socket_error    # handle socket errors
 
 import logging, logging.handlers as handlers
 
@@ -114,19 +116,49 @@ def traffic_rules_propagate( srcIP, dstIP, bandwidthList ):
     file_.close()
     tcCommand = tcBaseData.replace('__BWRATESTRING',json.JSONEncoder().encode(bwReq))
 
+
+    #############################
+    #       SSH CONNECTION      #
+    #############################
+
+    # Set up the client
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+    #
     # Connect to the container
-    retry = 50
+    # In case connection is refused or no path is found,
+    # just retry. Usually, it's just the SSH server
+    # that has not come up yet.
+    # Repeat while we have not connected yet,
+    # or not exhausted the retry count.
+    #
+    retry_count = 3
     connected = False
-    while not connected and retry > 0:
+    while not connected:
         try:
-            client = paramiko.SSHClient()
-            client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             client.connect( srcIP, username='root', password='contrail' )
             connected = True
+
+        # Received SOCKET exception
+        except socket_error as serr:
+
+            # The SSH/routing services might still be down
+            # so just retry, as long as we haven't exhausted
+            # our max retries.
+            # Wait a few seconds and retry.
+            # Rethrow the exception if another error code was received
+            # or it's the last retry.
+            if (retry > 0) and (serr.errno == errno.ECONNREFUSED or serr.errno == errno.EHOSTUNREACH):
+                retry = retry - 1
+                time.sleep(5)
+            else:
+                raise Exception("Socket error when connecting to " % srcIP % \
+                        "; received errno code " % serr.errno)
+
+        # Received any other exception
         except:
-            connected = False
-            retry = retry - 1
-            logger.info("Unknown exception: %s", sys.exc_info()[0])
+            raise Exception("Unknown exception: " % sys.exc_info()[0])
 
 
     # Execute the command
