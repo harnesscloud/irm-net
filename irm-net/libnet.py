@@ -5,6 +5,7 @@ import time         # to retry when ssh fails
 
 import re           # grep IPs using regex
 import paramiko     # ssh remote commands
+import sys          # get last exception message
 
 import logging, logging.handlers as handlers
 
@@ -113,16 +114,22 @@ def traffic_rules_propagate( srcIP, dstIP, bandwidthList ):
     file_.close()
     tcCommand = tcBaseData.replace('__BWRATESTRING',json.JSONEncoder().encode(bwReq))
 
-    #
-    # Connect to conpaas-director
-    #
-    try:
-        client = paramiko.SSHClient()
-        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        client.connect( srcIP, username='root', password='contrail' )
-    except paramiko.AuthenticationException:
-        raise Exception("Authentication failed when connecting to " % srcIP)
+    # Connect to the container
+    retry = 50
+    connected = False
+    while not connected and retry > 0:
+        try:
+            client = paramiko.SSHClient()
+            client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            client.connect( srcIP, username='root', password='contrail' )
+            connected = True
+        except:
+            connected = False
+            retry = retry - 1
+            logger.info("Unknown exception: %s", sys.exc_info()[0])
 
+
+    # Execute the command
     stdin, stdout, stderr = client.exec_command( tcCommand )
     error = stderr.readlines()
 
