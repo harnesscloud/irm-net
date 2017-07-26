@@ -499,8 +499,8 @@ def link_create_reservation (links, paths, link_list, link_res, req, reservedLin
     #
     # "Reserve" bandwidth on the links
     #
-    for linkID in link_list[ pathID ]:      
-       links[ linkID ]["Attributes"]["Bandwidth"] = links[ linkID ]["Attributes"]["Bandwidth"] - bandwidth 
+    for linkID in link_list[ pathID ]:
+       links[ linkID ]["Attributes"]["Bandwidth"] = links[ linkID ]["Attributes"]["Bandwidth"] - bandwidth
 
     #
     # Create the reservation ID
@@ -513,10 +513,23 @@ def link_create_reservation (links, paths, link_list, link_res, req, reservedLin
     # on a bottleneck link
     #
     calculate_attribs(paths, link_list, links)
-    install_traffic_rules( paths[pathID]["Attributes"]["Source"], \
-            paths[pathID]["Attributes"]["Target"],
-            bandwidth, reservedLinkResources )
-    
+
+    #
+    # Install the traffic rules.
+    # If an exception is raised, release the bandwidth
+    # and re-throw the exception.
+    #
+    try:
+        install_traffic_rules( paths[pathID]["Attributes"]["Source"], \
+                paths[pathID]["Attributes"]["Target"],
+                bandwidth, reservedLinkResources )
+    except:
+        for linkID in link_list[ pathID ]:
+           links[ linkID ]["Attributes"]["Bandwidth"] = links[ linkID ]["Attributes"]["Bandwidth"] + bandwidth
+
+        calculate_attribs(paths, link_list, links)
+        raise
+
     return resID
     
 def link_release_reservation (links, paths, link_list, link_res, resIDs):
